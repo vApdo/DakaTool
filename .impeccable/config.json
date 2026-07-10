@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "helvetica",
+        "reason": "User explicitly requested Helvetica",
+        "createdAt": "2026-07-10T11:13:10.555Z"
+      }
+    ]
+  }
+}
