@@ -26,7 +26,9 @@ npm test         # unit test (vitest) cho logic trích xuất PDF
 
 ## Tool thật đầu tiên: Trích xuất dữ liệu HBL từ PDF
 
-`/tools/hbl-pdf-extractor` — tool chạy thật (không mô phỏng): tải PDF House Bill of Lading lên, hệ thống đọc text layer bằng pdfjs-dist ngay trong trình duyệt (không upload đi đâu), trích xuất 23 trường nghiệp vụ, cho sửa từng trường, sao chép và xuất JSON. PDF scan (không có text layer) được phát hiện và báo "cần OCR" — kiến trúc OCR provider đã chuẩn bị sẵn ở `lib/pdf/ocr-provider.ts`.
+`/tools/hbl-pdf-extractor` — tool chạy thật (không mô phỏng): tải PDF House Bill of Lading lên, hệ thống đọc text layer bằng pdfjs-dist ngay trong trình duyệt (không upload đi đâu), trích xuất 23 trường nghiệp vụ, cho sửa từng trường, sao chép và xuất JSON.
+
+PDF scan (không có text layer) được nhận dạng bằng **OCR Tesseract.js chạy trong trình duyệt** — bấm "Nhận dạng bằng OCR" khi được gợi ý. Asset OCR (worker, WASM, model tiếng Anh, ~24MB) tự host tại `public/ocr/`; bộ giải mã ảnh JBIG2/JPEG2000 của pdf.js tại `public/pdfjs/` — không dùng CDN ngoài, ảnh chứng từ không rời khỏi máy. Bản scan bị lộn ngược/nghiêng được tự phát hiện qua confidence và thử lại ở góc 180/90/270°. Provider khác (Document AI, Textract...) có thể cắm thêm qua `lib/pdf/ocr-provider.ts`.
 
 - Logic parsing tách khỏi UI: `lib/pdf/` (extract-text, classify-pdf, extract-hbl, normalize-fields).
 - Runner riêng cho từng tool qua registry: `components/tool-runner-registry.tsx` — tool chưa có runner thật dùng ToolRunner mô phỏng.

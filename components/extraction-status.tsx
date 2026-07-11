@@ -6,8 +6,9 @@ export type ExtractionState =
   | { step: "idle" }
   | { step: "reading" }
   | { step: "analyzing" }
-  | { step: "done"; foundCount: number; totalCount: number }
+  | { step: "done"; foundCount: number; totalCount: number; viaOcr?: boolean }
   | { step: "needs-ocr"; pageCount: number }
+  | { step: "ocr"; progress: number }
   | { step: "error"; message: string }
 
 export function ExtractionStatus({ state }: { state: ExtractionState }) {
@@ -36,8 +37,27 @@ export function ExtractionStatus({ state }: { state: ExtractionState }) {
       return (
         <p className="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400" aria-live="polite">
           <CheckCircle2 className="h-4 w-4" />
-          Hoàn thành. Tìm thấy {state.foundCount}/{state.totalCount} trường — kiểm tra và sửa lại trước khi dùng.
+          Hoàn thành{state.viaOcr ? " (qua OCR — độ chính xác phụ thuộc chất lượng bản scan)" : ""}. Tìm thấy{" "}
+          {state.foundCount}/{state.totalCount} trường — kiểm tra và sửa lại trước khi dùng.
         </p>
+      )
+    case "ocr":
+      return (
+        <div aria-live="polite">
+          <p className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            Đang nhận dạng chữ (OCR)... {Math.round(state.progress * 100)}%
+          </p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+            <div
+              className="h-full rounded-full bg-[color:var(--primary-fill)] transition-all duration-300"
+              style={{ width: `${Math.round(state.progress * 100)}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Lần đầu chạy sẽ tải bộ nhận dạng (~14MB) về trình duyệt. Việc nhận dạng diễn ra ngay trên máy bạn.
+          </p>
+        </div>
       )
     case "needs-ocr":
       return (
@@ -52,8 +72,8 @@ export function ExtractionStatus({ state }: { state: ExtractionState }) {
               PDF này là bản scan, cần OCR để xử lý.
             </p>
             <p className="mt-1 text-amber-700/80 dark:text-amber-300/80">
-              {state.pageCount} trang không có lớp văn bản đọc được. Phiên bản hiện tại chưa hỗ trợ OCR — tính năng
-              này sẽ được bổ sung sau (Tesseract.js hoặc dịch vụ OCR chuyên dụng).
+              {state.pageCount} trang không có lớp văn bản đọc được. Bấm &quot;Nhận dạng bằng OCR&quot; để đọc chữ từ
+              ảnh ngay trong trình duyệt — file không được gửi đi đâu.
             </p>
           </div>
         </div>

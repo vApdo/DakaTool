@@ -189,6 +189,8 @@ function applyVesselRouteRows(result: HblExtractionResult, lines: Line[]): void 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     if (line.items.length < 2) continue
+    // Dòng liên hệ (điện thoại/fax) chứa dãy số dễ nhầm thành số chuyến.
+    if (/TEL|FAX|PHONE|E-?MAIL/i.test(line.text)) continue
 
     const firstItem = normalizeWhitespace(line.items[0].text)
     const tokens = firstItem.split(" ")

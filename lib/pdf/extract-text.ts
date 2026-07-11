@@ -34,7 +34,12 @@ export async function loadPdf(data: ArrayBuffer): Promise<LoadedPdf> {
     )
   }
 
-  const loadingTask = pdfjs.getDocument({ data })
+  const loadingTask = pdfjs.getDocument({
+    data,
+    // Bộ giải mã ảnh JBIG2/JPEG2000 (PDF scan hay dùng) và font chuẩn — tự host, không CDN.
+    wasmUrl: "/pdfjs/wasm/",
+    standardFontDataUrl: "/pdfjs/standard_fonts/",
+  })
   const doc = await loadingTask.promise
 
   const pages: PageText[] = []

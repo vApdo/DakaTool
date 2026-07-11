@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { ScanLine } from "lucide-react"
 import type { Tool } from "@/lib/types"
 import type { LoadedPdf } from "@/lib/pdf/extract-text"
 import { classifyPdf } from "@/lib/pdf/classify-pdf"
@@ -21,6 +22,7 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
   const [pdf, setPdf] = useState<LoadedPdf | null>(null)
   const [fileName, setFileName] = useState("")
   const [result, setResult] = useState<HblExtractionResult | null>(null)
+  const [isScan, setIsScan] = useState(false)
   const pdfRef = useRef<LoadedPdf | null>(null)
 
   // Giải phóng tài nguyên pdf.js khi unmount hoặc thay file.
@@ -35,6 +37,7 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
 
   async function handleFile(file: File) {
     setResult(null)
+    setIsScan(false)
     setState({ step: "reading" })
     void pdf?.destroy()
     setPdf(null)
@@ -48,15 +51,13 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
 
       setState({ step: "analyzing" })
       const classification = classifyPdf(loaded.pages)
+      setIsScan(classification.kind === "scan")
       if (classification.kind === "scan") {
         setState({ step: "needs-ocr", pageCount: classification.pageCount })
         return
       }
 
-      const extracted = extractHbl(loaded.pages)
-      setResult(extracted)
-      const foundCount = HBL_FIELD_ORDER.filter((k) => extracted[k].status === "found").length
-      setState({ step: "done", foundCount, totalCount: HBL_FIELD_ORDER.length })
+      finishExtraction(loaded.pages, false)
     } catch (err) {
       setState({
         step: "error",
@@ -64,6 +65,61 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
           err instanceof Error && err.name === "PasswordException"
             ? "File PDF có mật khẩu. Hãy gỡ mật khẩu rồi thử lại."
             : "File có thể bị hỏng hoặc không phải PDF hợp lệ. Hãy thử mở file bằng trình đọc PDF để kiểm tra.",
+      })
+    }
+  }
+
+  function finishExtraction(pages: LoadedPdf["pages"], viaOcr: boolean) {
+    const extracted = extractHbl(pages)
+    setResult(extracted)
+    const foundCount = HBL_FIELD_ORDER.filter((k) => extracted[k].status === "found").length
+    setState({ step: "done", foundCount, totalCount: HBL_FIELD_ORDER.length, viaOcr })
+  }
+
+  async function handleRunOcr() {
+    if (!pdf) return
+    setState({ step: "ocr", progress: 0 })
+    try {
+      // Render từng trang ra ảnh PNG (scale 2 để đủ nét cho OCR).
+      const scale = 2
+      const renderToBlob = async (pageNumber: number, rotation: number) => {
+        const canvas = document.createElement("canvas")
+        await pdf.renderPage(pageNumber, canvas, { scale, rotation })
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))
+        if (!blob) throw new Error("canvas.toBlob failed")
+        return { blob, widthPx: canvas.width, heightPx: canvas.height }
+      }
+      const images = []
+      for (let pageNumber = 1; pageNumber <= pdf.pageCount; pageNumber++) {
+        const rendered = await renderToBlob(pageNumber, 0)
+        images.push({
+          pageNumber,
+          ...rendered,
+          scale,
+          // Cho provider render lại khi phát hiện bản scan bị xoay ngược/nghiêng.
+          render: (rotation: number) => renderToBlob(pageNumber, rotation),
+        })
+      }
+
+      const { tesseractOcrProvider } = await import("@/lib/pdf/ocr-tesseract")
+      const pages = await tesseractOcrProvider.recognize(images, (progress) =>
+        setState({ step: "ocr", progress }),
+      )
+
+      const hasText = pages.some((p) => p.items.length > 0)
+      if (!hasText) {
+        setState({
+          step: "error",
+          message: "OCR không đọc được chữ nào từ bản scan này. Ảnh có thể quá mờ hoặc nghiêng.",
+        })
+        return
+      }
+      finishExtraction(pages, true)
+    } catch (err) {
+      console.error("OCR error:", err)
+      setState({
+        step: "error",
+        message: "OCR gặp lỗi khi xử lý. Hãy thử lại; nếu vẫn lỗi, bản scan có thể quá lớn hoặc trình duyệt chặn Web Worker.",
       })
     }
   }
@@ -94,6 +150,12 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
         <div className="card p-6">
           <h2 className="mb-3 text-lg font-semibold text-black dark:text-white">Dữ liệu trích xuất</h2>
           <ExtractionStatus state={state} />
+          {(state.step === "needs-ocr" || (state.step === "error" && isScan && pdf)) && (
+            <button type="button" onClick={handleRunOcr} className="btn-primary mt-4">
+              <ScanLine className="h-4 w-4" />
+              {state.step === "error" ? "Thử OCR lại" : "Nhận dạng bằng OCR"}
+            </button>
+          )}
           {result && state.step === "done" && (
             <div className="mt-5">
               <HblExtractionForm result={result} fileName={fileName} />

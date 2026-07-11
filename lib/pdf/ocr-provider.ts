@@ -1,29 +1,52 @@
 import type { PageText } from "./types"
 
 /**
- * Kiến trúc chuẩn bị cho OCR (phiên bản sau).
+ * Kiến trúc OCR của pipeline HBL.
  *
- * Khi PDF là bản scan, pipeline hiện tại dừng ở trạng thái "needs-ocr".
- * Để thêm OCR, cài đặt interface OcrProvider rồi đăng ký vào ocrProviderRegistry —
- * phần còn lại của pipeline (classify → extract-hbl → UI) không cần thay đổi
- * vì extract-hbl chỉ nhận PageText[], không quan tâm text đến từ đâu.
+ * Khi PDF là bản scan (không có text layer), runner render từng trang ra ảnh
+ * rồi đưa cho một OcrProvider. Provider trả về PageText[] — đúng cấu trúc mà
+ * extract-text.ts tạo ra từ text layer, nên phần còn lại của pipeline
+ * (extract-hbl → UI) dùng lại nguyên vẹn, không cần biết text đến từ đâu.
  *
- * Ứng viên dự kiến:
- * - "tesseract-js": chạy trong trình duyệt, miễn phí (render trang PDF ra canvas → nhận dạng)
- * - "ocrmypdf": chạy server/CLI, cần backend
- * - "google-document-ai" | "azure-document-intelligence" | "aws-textract": API trả phí, cần backend
+ * Provider hiện có:
+ * - "tesseract-js" (lib/pdf/ocr-tesseract.ts): chạy trong trình duyệt, miễn phí,
+ *   asset tự host trong public/ocr — file không rời khỏi máy người dùng.
+ * Ứng viên tương lai (cần backend hoặc API trả phí):
+ * - OCRmyPDF, Google Document AI, Azure Document Intelligence, AWS Textract.
  */
+
+/** Ảnh một trang PDF đã render, kèm thông tin để quy đổi tọa độ pixel → tọa độ PDF. */
+export interface OcrPageImage {
+  pageNumber: number
+  blob: Blob
+  widthPx: number
+  heightPx: number
+  /** Hệ số scale đã dùng khi render (pixel = đơn vị PDF × scale). */
+  scale: number
+  /**
+   * Render lại trang ở góc xoay khác (90/180/270°) — provider dùng khi nghi ngờ
+   * bản scan bị đặt ngược/nghiêng (confidence thấp). Trả về ảnh và kích thước mới.
+   */
+  render?: (rotation: number) => Promise<{ blob: Blob; widthPx: number; heightPx: number }>
+}
+
 export interface OcrProvider {
   id: string
   name: string
   /** true nếu chạy hoàn toàn trong trình duyệt, không gửi file ra ngoài. */
   runsInBrowser: boolean
-  /** Nhận ảnh các trang (đã render từ PDF) và trả về text có tọa độ, cùng định dạng với extract-text. */
-  recognize(pages: ImageBitmap[] | Blob[]): Promise<PageText[]>
+  /**
+   * Nhận dạng chữ từ ảnh các trang. onProgress nhận giá trị 0..1 (tiến độ thật
+   * từ engine, không phải mô phỏng).
+   */
+  recognize(pages: OcrPageImage[], onProgress?: (progress: number) => void): Promise<PageText[]>
 }
 
-/** Registry OCR — hiện rỗng, phiên bản 1 chưa tích hợp OCR. */
 export const ocrProviderRegistry: Record<string, OcrProvider> = {}
+
+export function registerOcrProvider(provider: OcrProvider): void {
+  ocrProviderRegistry[provider.id] = provider
+}
 
 export function getAvailableOcrProviders(): OcrProvider[] {
   return Object.values(ocrProviderRegistry)
