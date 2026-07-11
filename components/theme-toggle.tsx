@@ -20,7 +20,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="w-9 h-9 inline-flex items-center justify-center rounded-md border border-[color:var(--border)] transition-colors hover:border-[#7A7FEE] hover:text-[#7A7FEE]"
+      className="w-9 h-9 inline-flex items-center justify-center rounded-md border border-[color:var(--border)] transition-colors hover:border-primary hover:text-primary"
       aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
     >
       {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}

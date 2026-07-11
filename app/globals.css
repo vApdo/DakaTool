@@ -3,49 +3,63 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #111827;
-  --card: #f3f4f6;
-  --card-foreground: #111827;
-  --card-border: #e5e7eb;
-  --primary: #7a7fee;
+  --background: #f6f9f8;
+  --foreground: #10231d;
+  --card: rgba(16, 36, 28, 0.04);
+  --card-foreground: #10231d;
+  --card-border: rgba(16, 24, 40, 0.1);
+  --primary: #0b6b50;
   --primary-foreground: #ffffff;
-  --secondary: #f3f4f6;
-  --secondary-foreground: #111827;
-  --muted: #6b7280;
-  --muted-foreground: #4b5563;
-  --accent: #f3f4f6;
-  --accent-foreground: #111827;
-  --border: #d1d5db;
-  --input: #d1d5db;
-  --ring: #7a7fee;
+  --primary-fill: #47eec0;
+  --primary-fill-foreground: #0d0f0e;
+  --primary-soft: rgba(18, 183, 138, 0.12);
+  --secondary: #e8efec;
+  --secondary-foreground: #10231d;
+  --muted: #5b6b65;
+  --muted-foreground: #47554f;
+  --accent: #e8efec;
+  --accent-foreground: #10231d;
+  --border: rgba(16, 24, 40, 0.14);
+  --input: rgba(16, 24, 40, 0.18);
+  --ring: #0b6b50;
+  --glow: rgba(18, 183, 138, 0.18);
   --radius: 0.75rem;
 }
 
 .dark {
-  --background: #101112;
-  --foreground: #d9d9d9;
-  --card: #272829;
-  --card-foreground: #ffffff;
-  --card-border: #1a1a1a;
-  --primary: #7a7fee;
-  --primary-foreground: #ffffff;
-  --secondary: #272829;
-  --secondary-foreground: #ffffff;
-  --muted: #a1a1aa;
-  --muted-foreground: #d4d4d8;
-  --accent: #2a2a2a;
-  --accent-foreground: #ffffff;
-  --border: #2a2a2a;
-  --input: #2a2a2a;
-  --ring: #7a7fee;
+  --background: #0f1211;
+  --foreground: #e7eceb;
+  --card: rgba(231, 236, 235, 0.06);
+  --card-foreground: #e7eceb;
+  --card-border: rgba(255, 255, 255, 0.1);
+  --primary: #78fcd6;
+  --primary-foreground: #0d0f0e;
+  --primary-fill: #78fcd6;
+  --primary-fill-foreground: #0d0f0e;
+  --primary-soft: rgba(120, 252, 214, 0.1);
+  --secondary: #1c211f;
+  --secondary-foreground: #e7eceb;
+  --muted: rgba(231, 236, 235, 0.6);
+  --muted-foreground: rgba(231, 236, 235, 0.72);
+  --accent: #232927;
+  --accent-foreground: #f4f4f5;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #78fcd6;
+  --glow: rgba(120, 252, 214, 0.14);
 }
 
 @layer base {
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: var(--font-geist-sans), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
 
   html {
@@ -76,30 +90,24 @@
     background-color: var(--card);
     color: var(--card-foreground);
     border: 1px solid var(--card-border);
-    @apply rounded-3xl overflow-hidden shadow-md;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    @apply rounded-2xl overflow-hidden;
   }
 
   .dark .card {
-    background-image: linear-gradient(to bottom, #2d2e2f, #272829);
-    position: relative;
+    background-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.04), transparent);
   }
 
-  .dark .card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: url("/noise-texture.png");
-    background-size: 200px;
-    opacity: 0.4;
-    mix-blend-mode: overlay;
-    pointer-events: none;
-    border-radius: inherit;
+  .accent-fill {
+    background-color: var(--primary-fill);
+    color: var(--primary-fill-foreground);
   }
 
   .btn-primary {
-    background-color: #7a7fee;
-    color: #ffffff;
-    @apply inline-flex items-center gap-2 px-6 py-2.5 rounded-md hover:bg-opacity-90 transition-all text-sm font-medium shadow-sm disabled:opacity-50 disabled:pointer-events-none;
+    background-color: var(--primary-fill);
+    color: var(--primary-fill-foreground);
+    @apply inline-flex items-center gap-2 px-6 py-2.5 rounded-full hover:brightness-110 transition-all text-sm font-medium shadow-sm disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-secondary {
@@ -110,11 +118,11 @@
   .btn-outline {
     color: var(--foreground);
     border: 1px solid var(--border);
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors hover:border-[#7A7FEE] hover:text-[#7A7FEE];
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors hover:border-primary hover:text-primary;
   }
 
   .accent-text {
-    color: #7a7fee;
+    color: var(--primary);
   }
 
   .field-label {
@@ -125,6 +133,11 @@
     background-color: var(--background);
     border: 1px solid var(--input);
     color: var(--foreground);
-    @apply w-full rounded-md px-3 py-2 text-sm outline-none transition-colors focus:border-[#7A7FEE] focus:ring-2 focus:ring-[#7A7FEE]/30;
+    @apply w-full rounded-md px-3 py-2 text-sm outline-none transition-colors;
+  }
+
+  .field-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
   }
 }

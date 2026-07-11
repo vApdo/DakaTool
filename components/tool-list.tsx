@@ -47,8 +47,8 @@ export function ToolList({ tools }: { tools: Tool[] }) {
               onClick={() => setCategory(c)}
               className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 category === c
-                  ? "bg-[#7A7FEE] text-white"
-                  : "bg-[color:var(--card)] border border-[color:var(--card-border)] text-gray-700 hover:border-[#7A7FEE] dark:text-gray-300"
+                  ? "accent-fill"
+                  : "bg-[color:var(--card)] border border-[color:var(--card-border)] text-gray-700 hover:border-primary dark:text-gray-300"
               }`}
             >
               {c}
@@ -76,7 +76,7 @@ export function ToolList({ tools }: { tools: Tool[] }) {
               className="card group p-6 shadow-md transition-shadow duration-300 hover:shadow-lg"
             >
               <div className="flex items-start justify-between gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#7A7FEE]/10 text-[#7A7FEE] transition-colors group-hover:bg-[#7A7FEE] group-hover:text-white">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[color:var(--primary-soft)] text-primary transition-colors group-hover:bg-[color:var(--primary-fill)] group-hover:text-[color:var(--primary-fill-foreground)]">
                   <ToolIcon name={tool.icon} className="h-5 w-5" />
                 </span>
                 <ToolStatusBadge status={tool.status} />

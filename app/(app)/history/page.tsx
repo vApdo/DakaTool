@@ -38,7 +38,7 @@ export default function HistoryPage() {
                 <td className="px-6 py-4">
                   <Link
                     href={`/tools/${run.toolId}`}
-                    className="font-medium text-black hover:text-[#7A7FEE] dark:text-white dark:hover:text-[#7A7FEE]"
+                    className="font-medium text-black hover:text-primary dark:text-white dark:hover:text-primary"
                   >
                     {run.toolName}
                   </Link>

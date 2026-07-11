@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { GeistSans } from "geist/font/sans"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
@@ -15,9 +16,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="vi" suppressHydrationWarning>
-      <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <html lang="vi" className={GeistSans.variable} suppressHydrationWarning>
+      <body className="font-sans antialiased">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>
       </body>

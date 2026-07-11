@@ -1,26 +1,56 @@
 import Link from "next/link"
-import Image from "next/image"
 import { ArrowRight, Wrench, PlayCircle, History, LayoutTemplate, Zap } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { AnimatedSection } from "@/components/animated-section"
 import { tools, runs } from "@/lib/data"
 
 const features = [
   {
-    title: "Tạo tool một lần",
+    title: "Tạo tool một lần.",
     description: "Mô tả công việc lặp lại thành một tool có form nhập liệu rõ ràng, ai trong nhóm cũng chạy được.",
     icon: Wrench,
   },
   {
-    title: "Chạy khi cần",
+    title: "Chạy khi cần.",
     description: "Điền thông tin, bấm chạy và theo dõi tiến trình trực tiếp. Kết quả lưu lại đầy đủ trong lịch sử.",
     icon: PlayCircle,
   },
   {
-    title: "Không làm lại từ đầu",
+    title: "Không làm lại từ đầu.",
     description: "Thư viện template gom sẵn các quy trình hay dùng — nhân bản rồi chỉnh cho việc của bạn.",
     icon: LayoutTemplate,
   },
 ]
+
+function HeroBackdrop() {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+      <svg
+        className="h-full w-full text-foreground [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <pattern id="hero-grid" width="36" height="36" patternUnits="userSpaceOnUse">
+            <rect
+              width="35.6"
+              height="35.6"
+              x="0.2"
+              y="0.2"
+              fill="none"
+              stroke="currentColor"
+              strokeOpacity="0.11"
+              strokeWidth="0.4"
+              strokeDasharray="2 2"
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#hero-grid)" />
+      </svg>
+      <div className="absolute left-1/2 top-[-40%] h-[480px] w-[720px] -translate-x-1/2 rounded-full bg-[color:var(--glow)] blur-[130px]" />
+      <div className="absolute bottom-[-55%] right-[-10%] h-[420px] w-[560px] rotate-[-33deg] rounded-full bg-[color:var(--glow)] blur-[130px]" />
+    </div>
+  )
+}
 
 export default function HomePage() {
   const activeTools = tools.filter((t) => t.status === "active").length
@@ -30,7 +60,7 @@ export default function HomePage() {
     <div className="container">
       <header className="flex items-center justify-between py-5">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7A7FEE] text-white">
+          <span className="accent-fill flex h-8 w-8 items-center justify-center rounded-lg">
             <Zap className="h-4 w-4" />
           </span>
           <span className="text-lg font-semibold text-black dark:text-white">
@@ -46,96 +76,98 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="card my-8 relative overflow-hidden shadow-md">
-        <div className="p-8 md:p-10 lg:p-12 flex flex-col md:flex-row items-start">
-          <div className="w-full md:w-3/5 z-10">
-            <h1 className="text-black dark:text-white text-4xl md:text-5xl lg:text-6xl font-medium leading-tight">
-              Việc lặp lại,
-              <span className="block accent-text">giao cho tool</span>
-              làm thay
+      <AnimatedSection>
+        <section className="card relative my-6 overflow-hidden">
+          <HeroBackdrop />
+          <div className="relative z-10 flex flex-col items-center px-6 py-16 text-center md:py-24 lg:py-28">
+            <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-black dark:text-white md:text-6xl md:leading-[1.1]">
+              Việc lặp lại, <span className="accent-text">giao cho tool</span> làm thay
             </h1>
-            <p className="my-6 text-sm md:text-base max-w-md text-gray-700 dark:text-gray-300">
-              DakaTool là nơi tạo, quản lý và chạy các tool tự động hóa công việc hằng ngày — đổi tên file, gộp báo
-              cáo, gửi email định kỳ — dùng trong nội bộ, không cần code lại từ đầu.
+            <p className="mt-6 max-w-xl text-base text-gray-700 dark:text-[color:var(--muted-foreground)] md:text-lg">
+              DakaTool là nơi tạo, quản lý và chạy các tool tự động hóa công việc hằng ngày — đổi tên file, gộp báo cáo,
+              gửi email định kỳ — dùng trong nội bộ, không cần code lại từ đầu.
             </p>
-            <div className="flex flex-wrap items-center gap-4">
-              <Link href="/dashboard" className="btn-primary">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <Link href="/dashboard" className="btn-primary px-8">
                 Bắt đầu ngay
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/tools" className="btn-secondary text-black dark:text-white">
+              <Link href="/tools" className="btn-outline px-8">
                 Xem danh sách tool
               </Link>
             </div>
-            <dl className="mt-8 flex gap-8 text-sm">
+            <dl className="mt-12 flex flex-wrap justify-center gap-x-12 gap-y-6 text-sm">
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">Tool sẵn sàng</dt>
-                <dd className="text-2xl font-semibold text-black dark:text-white">{activeTools}</dd>
+                <dd className="text-3xl font-semibold text-black dark:text-white">{activeTools}</dd>
+                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Tool sẵn sàng</dt>
               </div>
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">Lượt chạy</dt>
-                <dd className="text-2xl font-semibold text-black dark:text-white">{totalRuns}</dd>
+                <dd className="text-3xl font-semibold text-black dark:text-white">{totalRuns}</dd>
+                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Lượt chạy</dt>
               </div>
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">Lần chạy gần nhất</dt>
-                <dd className="text-2xl font-semibold text-black dark:text-white">Hôm nay</dd>
+                <dd className="text-3xl font-semibold text-black dark:text-white">Hôm nay</dd>
+                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Lần chạy gần nhất</dt>
               </div>
             </dl>
           </div>
-          <div className="hidden md:flex md:w-2/5 md:absolute md:right-0 md:top-0 md:bottom-0 md:items-center">
-            <Image
-              src="/purple-circle-wave-static.png"
-              alt=""
-              width={500}
-              height={500}
-              className="w-full h-auto md:h-full md:w-auto md:object-cover md:object-left"
-              priority
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+      </AnimatedSection>
 
-      <section className="my-16">
-        <h2 className="text-black dark:text-white mb-4 text-3xl md:text-4xl font-medium leading-tight">
-          Một chỗ cho mọi
-          <span className="block accent-text">việc tự động</span>
-        </h2>
-        <p className="mb-10 max-w-2xl text-gray-700 dark:text-gray-300">
-          Thay vì mỗi người giữ một mớ script rời rạc, DakaTool gom tất cả về một nơi: có form nhập liệu, có lịch sử
-          chạy, có kết quả để xuất ra.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {features.map((f) => (
-            <div key={f.title} className="card p-6 shadow-md hover:shadow-lg transition-shadow duration-300">
-              <div className="bg-[#7A7FEE] w-12 h-12 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                <f.icon className="w-6 h-6 text-white" />
+      <section className="my-20 md:my-28">
+        <AnimatedSection className="mx-auto mb-12 max-w-2xl text-center" delay={0.1}>
+          <h2 className="text-3xl font-semibold leading-tight text-black dark:text-white md:text-5xl">
+            Một chỗ cho mọi <span className="accent-text">việc tự động</span>
+          </h2>
+          <p className="mt-4 text-base text-gray-700 dark:text-[color:var(--muted-foreground)] md:text-lg">
+            Thay vì mỗi người giữ một mớ script rời rạc, DakaTool gom tất cả về một nơi: có form nhập liệu, có lịch sử
+            chạy, có kết quả để xuất ra.
+          </p>
+        </AnimatedSection>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {features.map((f, i) => (
+            <AnimatedSection key={f.title} delay={0.1 + i * 0.1}>
+              <div className="card h-full p-6">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[color:var(--primary-soft)] text-primary">
+                  <f.icon className="h-5 w-5" />
+                </span>
+                <p className="mt-5 text-lg leading-7 text-black dark:text-white">
+                  {f.title}{" "}
+                  <span className="text-gray-600 dark:text-[color:var(--muted)]">{f.description}</span>
+                </p>
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-black dark:text-white">{f.title}</h3>
-              <p className="text-gray-700 dark:text-gray-300">{f.description}</p>
-            </div>
+            </AnimatedSection>
           ))}
         </div>
       </section>
 
-      <section className="card my-16 p-8 md:p-10">
-        <div className="flex flex-wrap items-center justify-between gap-6">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-medium text-black dark:text-white">Hoạt động gần đây</h2>
-            <p className="mt-2 max-w-xl text-sm text-gray-700 dark:text-gray-300">
-              {runs[1].summary} — và {runs.length - 1} lần chạy khác trong tuần này.
-            </p>
+      <AnimatedSection delay={0.1}>
+        <section className="card relative my-20 overflow-hidden p-8 md:p-10">
+          <div
+            className="pointer-events-none absolute right-[-20%] top-[-60%] h-[320px] w-[480px] rounded-full bg-[color:var(--glow)] blur-[130px]"
+            aria-hidden="true"
+          />
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+            <div>
+              <h2 className="text-2xl font-semibold text-black dark:text-white md:text-3xl">Hoạt động gần đây</h2>
+              <p className="mt-2 max-w-xl text-sm text-gray-700 dark:text-[color:var(--muted-foreground)]">
+                {runs[1].summary} — và {runs.length - 1} lần chạy khác trong tuần này.
+              </p>
+            </div>
+            <Link href="/history" className="btn-outline">
+              <History className="h-4 w-4" />
+              Xem lịch sử chạy
+            </Link>
           </div>
-          <Link href="/history" className="btn-outline">
-            <History className="h-4 w-4" />
-            Xem lịch sử chạy
-          </Link>
-        </div>
-      </section>
+        </section>
+      </AnimatedSection>
 
-      <footer className="border-t border-[color:var(--card-border)] py-6 text-sm text-gray-500 dark:text-gray-400 flex flex-wrap justify-between gap-2">
-        <p>DakaTool — công cụ tự động hóa nội bộ.</p>
-        <p>MVP 0.1 · Dữ liệu mẫu, chưa kết nối hệ thống thật.</p>
-      </footer>
+      <AnimatedSection delay={0.1}>
+        <footer className="flex flex-wrap justify-between gap-2 border-t border-[color:var(--card-border)] py-6 text-sm text-gray-500 dark:text-[color:var(--muted)]">
+          <p>DakaTool — công cụ tự động hóa nội bộ.</p>
+          <p>MVP 0.1 · Dữ liệu mẫu, chưa kết nối hệ thống thật.</p>
+        </footer>
+      </AnimatedSection>
     </div>
   )
 }

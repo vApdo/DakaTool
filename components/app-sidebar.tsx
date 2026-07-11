@@ -28,7 +28,7 @@ export function AppSidebar() {
   return (
     <aside className="flex h-full flex-col border-r border-[color:var(--card-border)] bg-[color:var(--card)]">
       <div className="flex items-center gap-2 px-5 py-5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7A7FEE] text-white">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg accent-fill">
           <Zap className="h-4 w-4" />
         </span>
         <Link href="/" className="text-lg font-semibold text-black dark:text-white">
@@ -49,7 +49,7 @@ export function AppSidebar() {
               aria-current={active ? "page" : undefined}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-[#7A7FEE] text-white shadow-sm"
+                  ? "accent-fill shadow-sm"
                   : "text-gray-700 hover:bg-black/5 dark:text-gray-300 dark:hover:bg-white/5"
               }`}
             >

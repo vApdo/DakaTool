@@ -3,10 +3,10 @@ import type { RunStatus, ToolStatus } from "@/lib/types"
 export function RunStatusBadge({ status }: { status: RunStatus }) {
   if (status === "running") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#7A7FEE]/10 px-2.5 py-0.5 text-xs font-medium text-[#7A7FEE]">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--primary-soft)] px-2.5 py-0.5 text-xs font-medium text-primary">
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#7A7FEE] opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-[#7A7FEE]" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[color:var(--primary-fill)] opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-[color:var(--primary-fill)]" />
         </span>
         Đang chạy
       </span>

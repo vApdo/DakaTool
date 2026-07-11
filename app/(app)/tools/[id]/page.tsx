@@ -24,7 +24,7 @@ export default function ToolRunPage({ params }: { params: { id: string } }) {
       </Link>
 
       <div className="mb-8 flex flex-wrap items-start gap-4">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#7A7FEE]/10 text-[#7A7FEE]">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[color:var(--primary-soft)] text-primary">
           <ToolIcon name={tool.icon} className="h-7 w-7" />
         </span>
         <div className="min-w-0 flex-1">

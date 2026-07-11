@@ -3,6 +3,7 @@ import { ArrowRight, PlusCircle, Wrench, PlayCircle, CheckCircle2, LayoutTemplat
 import { PageHeader } from "@/components/page-header"
 import { RunStatusBadge } from "@/components/status-badge"
 import { ToolIcon } from "@/components/tool-icon"
+import { AnimatedSection } from "@/components/animated-section"
 import { tools, templates, runs, formatDateTime } from "@/lib/data"
 
 export const metadata = { title: "Dashboard - DakaTool" }
@@ -37,14 +38,16 @@ export default function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
-        {stats.map((s) => (
-          <div key={s.label} className="card p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600 dark:text-gray-400">{s.label}</p>
-              <s.icon className="h-4 w-4 text-[#7A7FEE]" />
+        {stats.map((s, i) => (
+          <AnimatedSection key={s.label} delay={0.05 + i * 0.08}>
+            <div className="card h-full p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600 dark:text-gray-400">{s.label}</p>
+                <s.icon className="h-4 w-4 text-primary" />
+              </div>
+              <p className="mt-2 text-3xl font-semibold text-black dark:text-white">{s.value}</p>
             </div>
-            <p className="mt-2 text-3xl font-semibold text-black dark:text-white">{s.value}</p>
-          </div>
+          </AnimatedSection>
         ))}
       </div>
 
@@ -63,7 +66,7 @@ export default function DashboardPage() {
                 <div className="min-w-0">
                   <Link
                     href={`/tools/${run.toolId}`}
-                    className="font-medium text-black hover:text-[#7A7FEE] dark:text-white dark:hover:text-[#7A7FEE]"
+                    className="font-medium text-black hover:text-primary dark:text-white dark:hover:text-primary"
                   >
                     {run.toolName}
                   </Link>
@@ -87,7 +90,7 @@ export default function DashboardPage() {
                   href={`/tools/${tool.id}`}
                   className="flex items-center gap-3 rounded-xl p-2 -m-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#7A7FEE]/10 text-[#7A7FEE]">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color:var(--primary-soft)] text-primary">
                     <ToolIcon name={tool.icon} className="h-5 w-5" />
                   </span>
                   <span className="min-w-0 flex-1">

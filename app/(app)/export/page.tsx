@@ -19,7 +19,7 @@ export default function ExportPage() {
       />
 
       <div className="card p-8 md:p-10">
-        <span className="inline-flex items-center rounded-full bg-[#7A7FEE]/10 px-3 py-1 text-xs font-medium text-[#7A7FEE]">
+        <span className="inline-flex items-center rounded-full bg-[color:var(--primary-soft)] px-3 py-1 text-xs font-medium text-primary">
           Sắp có trong bản kế tiếp
         </span>
         <h2 className="mt-4 text-xl md:text-2xl font-semibold text-black dark:text-white">
@@ -33,7 +33,7 @@ export default function ExportPage() {
         <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           {formats.map((f) => (
             <div key={f.name} className="rounded-2xl border border-dashed border-[color:var(--border)] p-5">
-              <f.icon className="h-6 w-6 text-[#7A7FEE]" />
+              <f.icon className="h-6 w-6 text-primary" />
               <h3 className="mt-3 font-semibold text-black dark:text-white">{f.name}</h3>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{f.description}</p>
             </div>

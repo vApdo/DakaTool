@@ -102,7 +102,7 @@ export function ToolRunner({ tool }: { tool: Tool }) {
                 id={input.name}
                 name={input.name}
                 type="file"
-                className="field-input file:mr-3 file:rounded-md file:border-0 file:bg-[#7A7FEE]/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-[#7A7FEE]"
+                className="field-input file:mr-3 file:rounded-md file:border-0 file:bg-[color:var(--primary-soft)] file:px-3 file:py-1 file:text-sm file:font-medium file:text-primary"
               />
             ) : (
               <input
@@ -139,7 +139,7 @@ export function ToolRunner({ tool }: { tool: Tool }) {
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
             <div
-              className="h-full rounded-full bg-[#7A7FEE] transition-all duration-500"
+              className="h-full rounded-full bg-[color:var(--primary-fill)] transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -154,7 +154,7 @@ export function ToolRunner({ tool }: { tool: Tool }) {
                 <span className="text-gray-500">[{line.time}]</span> {line.text}
               </p>
             ))}
-            {state === "running" && <p className="animate-pulse text-[#9ba0ff]">▍</p>}
+            {state === "running" && <p className="animate-pulse text-primary">▍</p>}
             <div ref={logEndRef} />
           </div>
 
