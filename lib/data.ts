@@ -1,8 +1,21 @@
 import type { Tool, Template, RunRecord, ToolCategory } from "./types"
 
-export const CATEGORIES: ToolCategory[] = ["File", "Dữ liệu", "Email", "Web", "Báo cáo"]
+export const CATEGORIES: ToolCategory[] = ["File", "Dữ liệu", "Email", "Web", "Báo cáo", "Chứng từ"]
 
 export const tools: Tool[] = [
+  {
+    id: "hbl-pdf-extractor",
+    name: "Trích xuất dữ liệu HBL từ PDF",
+    description:
+      "Tải lên file PDF House Bill of Lading, hệ thống đọc và trích xuất các trường quan trọng (HBL No, Shipper, Consignee, Container, cảng đi/đến...) để kiểm tra, sửa và xuất kết quả. Xử lý ngay trong trình duyệt.",
+    category: "Chứng từ",
+    icon: "FileSearch",
+    status: "active",
+    runsCount: 0,
+    lastRunAt: null,
+    inputs: [{ name: "file", label: "File PDF HBL", type: "file", required: true }],
+    tags: ["hbl", "pdf", "bill of lading", "chứng từ"],
+  },
   {
     id: "rename-files",
     name: "Đổi tên file hàng loạt",

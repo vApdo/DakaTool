@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { ToolIcon } from "@/components/tool-icon"
 import { ToolStatusBadge, RunStatusBadge } from "@/components/status-badge"
-import { ToolRunner } from "@/components/tool-runner"
+import { getToolRunner, hasCustomRunner } from "@/components/tool-runner-registry"
 import { getToolById, tools, runs, formatDateTime } from "@/lib/data"
 
 export function generateStaticParams() {
@@ -15,6 +15,8 @@ export default function ToolRunPage({ params }: { params: { id: string } }) {
   if (!tool) notFound()
 
   const toolRuns = runs.filter((r) => r.toolId === tool.id).slice(0, 3)
+  const Runner = getToolRunner(tool.id)
+  const custom = hasCustomRunner(tool.id)
 
   return (
     <div>
@@ -39,9 +41,13 @@ export default function ToolRunPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
+      {custom ? (
+        // Runner thật tự quản lý layout toàn chiều rộng (vd: xem trước PDF + form dữ liệu).
+        <Runner tool={tool} />
+      ) : (
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <ToolRunner tool={tool} />
+          <Runner tool={tool} />
         </div>
 
         <aside className="lg:col-span-2">
@@ -70,6 +76,7 @@ export default function ToolRunPage({ params }: { params: { id: string } }) {
           </div>
         </aside>
       </div>
+      )}
     </div>
   )
 }

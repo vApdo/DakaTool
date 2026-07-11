@@ -13,6 +13,7 @@ import {
   Sparkles,
   Archive,
   DatabaseBackup,
+  FileSearch,
   Wrench,
   type LucideIcon,
 } from "lucide-react"
@@ -32,6 +33,7 @@ const icons: Record<string, LucideIcon> = {
   Sparkles,
   Archive,
   DatabaseBackup,
+  FileSearch,
 }
 
 export function ToolIcon({ name, className }: { name: string; className?: string }) {

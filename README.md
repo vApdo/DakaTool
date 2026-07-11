@@ -8,6 +8,7 @@ Nền tảng nội bộ để tạo, quản lý và chạy các tool/quy trình 
 npm install
 npm run dev      # http://localhost:3000
 npm run build    # build production
+npm test         # unit test (vitest) cho logic trích xuất PDF
 ```
 
 ## Các trang (MVP 0.1)
@@ -22,6 +23,14 @@ npm run build    # build production
 | `/templates` | Thư viện template quy trình dựng sẵn |
 | `/history` | Lịch sử các lần chạy |
 | `/export` | Export kết quả (placeholder) |
+
+## Tool thật đầu tiên: Trích xuất dữ liệu HBL từ PDF
+
+`/tools/hbl-pdf-extractor` — tool chạy thật (không mô phỏng): tải PDF House Bill of Lading lên, hệ thống đọc text layer bằng pdfjs-dist ngay trong trình duyệt (không upload đi đâu), trích xuất 23 trường nghiệp vụ, cho sửa từng trường, sao chép và xuất JSON. PDF scan (không có text layer) được phát hiện và báo "cần OCR" — kiến trúc OCR provider đã chuẩn bị sẵn ở `lib/pdf/ocr-provider.ts`.
+
+- Logic parsing tách khỏi UI: `lib/pdf/` (extract-text, classify-pdf, extract-hbl, normalize-fields).
+- Runner riêng cho từng tool qua registry: `components/tool-runner-registry.tsx` — tool chưa có runner thật dùng ToolRunner mô phỏng.
+- Unit test + fixture PDF thật: `test/pdf/`, chạy bằng `npm test`.
 
 ## Kiến trúc
 

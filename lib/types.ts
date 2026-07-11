@@ -1,4 +1,4 @@
-export type ToolCategory = "File" | "Dữ liệu" | "Email" | "Web" | "Báo cáo"
+export type ToolCategory = "File" | "Dữ liệu" | "Email" | "Web" | "Báo cáo" | "Chứng từ"
 
 export type ToolStatus = "active" | "draft"
 

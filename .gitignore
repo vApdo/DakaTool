@@ -30,3 +30,6 @@ next-env.d.ts
 .claude/settings.local.json
 .impeccable/config.local.json
 .impeccable/cache/
+
+# Chung tu that dung de test cuc bo - khong dua len repo
+test/fixtures/*.pdf
