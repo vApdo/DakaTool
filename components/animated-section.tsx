@@ -1,9 +1,9 @@
 "use client"
 
-import { motion, useReducedMotion } from "framer-motion"
-import type { HTMLAttributes, ReactNode } from "react"
+import { motion, useReducedMotion, type HTMLMotionProps } from "framer-motion"
+import type { ReactNode } from "react"
 
-interface AnimatedSectionProps extends HTMLAttributes<HTMLDivElement> {
+interface AnimatedSectionProps extends HTMLMotionProps<"div"> {
   children: ReactNode
   delay?: number
 }
@@ -13,9 +13,9 @@ export function AnimatedSection({ children, className, delay = 0, ...props }: An
 
   if (reduceMotion) {
     return (
-      <div className={className} {...props}>
+      <motion.div className={className} {...props}>
         {children}
-      </div>
+      </motion.div>
     )
   }
 
