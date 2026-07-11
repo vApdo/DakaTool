@@ -59,6 +59,7 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
 
       finishExtraction(loaded.pages, false)
     } catch (err) {
+      console.error("PDF load error:", err)
       setState({
         step: "error",
         message:

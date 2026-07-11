@@ -10,6 +10,10 @@ import type { PageText } from "./types"
  * - không bị bundle vào server render (pdf.js cần DOM API),
  * - chỉ tải khi người dùng thực sự mở tool PDF.
  * Worker được bundle nội bộ qua new URL(...) — không dùng CDN ngoài.
+ *
+ * Dùng bản LEGACY của pdf.js: bản modern gọi thẳng các API rất mới
+ * (vd. Map.prototype.getOrInsertComputed) chưa có trên Safari/iOS hiện hành,
+ * làm loadPdf ném lỗi trên điện thoại. Bản legacy kèm sẵn polyfill.
  */
 
 export interface LoadedPdf {
@@ -25,11 +29,11 @@ export interface LoadedPdf {
 }
 
 export async function loadPdf(data: ArrayBuffer): Promise<LoadedPdf> {
-  const pdfjs = await import("pdfjs-dist")
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs")
   if (!pdfjs.GlobalWorkerOptions.workerPort) {
     // Worker dạng ES module để webpack bundle nội bộ (không tải từ CDN).
     pdfjs.GlobalWorkerOptions.workerPort = new Worker(
-      new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url),
+      new URL("pdfjs-dist/legacy/build/pdf.worker.min.mjs", import.meta.url),
       { type: "module" },
     )
   }
