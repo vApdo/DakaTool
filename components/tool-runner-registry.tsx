@@ -2,6 +2,14 @@ import type { ComponentType } from "react"
 import type { Tool } from "@/lib/types"
 import { ToolRunner } from "./tool-runner"
 import { HblPdfExtractorRunner } from "./hbl-pdf-extractor-runner"
+import { PdfMergeRunner } from "./pdf/pdf-merge-runner"
+import { PdfSplitRunner } from "./pdf/pdf-split-runner"
+import { PdfOrganizeRunner } from "./pdf/pdf-organize-runner"
+import { ImagesToPdfRunner } from "./pdf/images-to-pdf-runner"
+import { PdfToImagesRunner } from "./pdf/pdf-to-images-runner"
+import { PdfWatermarkRunner } from "./pdf/pdf-watermark-runner"
+import { PdfPageNumbersRunner } from "./pdf/pdf-page-numbers-runner"
+import { PdfSignRunner } from "./pdf/pdf-sign-runner"
 
 /**
  * Registry ánh xạ tool id → runner component.
@@ -10,6 +18,14 @@ import { HblPdfExtractorRunner } from "./hbl-pdf-extractor-runner"
  */
 const toolRunnerRegistry: Record<string, ComponentType<{ tool: Tool }>> = {
   "hbl-pdf-extractor": HblPdfExtractorRunner,
+  "pdf-merge": PdfMergeRunner,
+  "pdf-splitter": PdfSplitRunner,
+  "pdf-organize": PdfOrganizeRunner,
+  "images-to-pdf": ImagesToPdfRunner,
+  "pdf-to-images": PdfToImagesRunner,
+  "pdf-watermark": PdfWatermarkRunner,
+  "pdf-page-numbers": PdfPageNumbersRunner,
+  "pdf-sign": PdfSignRunner,
 }
 
 export function getToolRunner(toolId: string): ComponentType<{ tool: Tool }> {

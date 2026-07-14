@@ -1,6 +1,6 @@
 import type { Tool, Template, RunRecord, ToolCategory } from "./types"
 
-export const CATEGORIES: ToolCategory[] = ["File", "Dữ liệu", "Email", "Web", "Báo cáo", "Chứng từ"]
+export const CATEGORIES: ToolCategory[] = ["PDF", "File", "Dữ liệu", "Email", "Web", "Báo cáo", "Chứng từ"]
 
 export const tools: Tool[] = [
   {
@@ -127,17 +127,112 @@ export const tools: Tool[] = [
   {
     id: "pdf-splitter",
     name: "Tách trang PDF",
-    description: "Tách file PDF nhiều trang thành từng file riêng hoặc theo khoảng trang chỉ định.",
-    category: "File",
+    description:
+      "Tách file PDF nhiều trang thành từng file riêng hoặc theo khoảng trang chỉ định. Xử lý ngay trong trình duyệt.",
+    category: "PDF",
     icon: "Scissors",
-    status: "draft",
+    status: "active",
     runsCount: 8,
     lastRunAt: null,
     inputs: [
       { name: "file", label: "File PDF nguồn", type: "file", required: true },
       { name: "ranges", label: "Khoảng trang (vd: 1-3, 5, 7-10)", type: "text", placeholder: "Để trống nếu tách từng trang" },
     ],
-    tags: ["pdf"],
+    tags: ["pdf", "tách trang"],
+  },
+  {
+    id: "pdf-merge",
+    name: "Ghép PDF",
+    description:
+      "Ghép nhiều file PDF thành một file duy nhất theo thứ tự bạn sắp xếp — tiện gộp Invoice, Packing List, B/L thành một bộ chứng từ. Xử lý ngay trong trình duyệt.",
+    category: "PDF",
+    icon: "Combine",
+    status: "active",
+    runsCount: 0,
+    lastRunAt: null,
+    inputs: [{ name: "files", label: "Các file PDF cần ghép", type: "file", required: true }],
+    tags: ["pdf", "ghép file", "chứng từ"],
+  },
+  {
+    id: "pdf-organize",
+    name: "Sắp xếp trang PDF",
+    description:
+      "Xoay, xóa và đổi thứ tự trang PDF bằng lưới ảnh xem trước, rồi xuất file mới. Xử lý ngay trong trình duyệt.",
+    category: "PDF",
+    icon: "LayoutGrid",
+    status: "active",
+    runsCount: 0,
+    lastRunAt: null,
+    inputs: [{ name: "file", label: "File PDF nguồn", type: "file", required: true }],
+    tags: ["pdf", "xoay trang", "xóa trang"],
+  },
+  {
+    id: "images-to-pdf",
+    name: "Ảnh sang PDF",
+    description:
+      "Ghép nhiều ảnh JPG/PNG (vd chụp chứng từ bằng điện thoại) thành một file PDF, mỗi ảnh một trang. Xử lý ngay trong trình duyệt.",
+    category: "PDF",
+    icon: "Images",
+    status: "active",
+    runsCount: 0,
+    lastRunAt: null,
+    inputs: [{ name: "files", label: "Các file ảnh", type: "file", required: true }],
+    tags: ["pdf", "ảnh", "scan"],
+  },
+  {
+    id: "pdf-to-images",
+    name: "PDF sang ảnh",
+    description:
+      "Xuất từng trang PDF thành ảnh PNG hoặc JPG để chèn vào email, chat hay tài liệu khác. Xử lý ngay trong trình duyệt.",
+    category: "PDF",
+    icon: "FileImage",
+    status: "active",
+    runsCount: 0,
+    lastRunAt: null,
+    inputs: [{ name: "file", label: "File PDF nguồn", type: "file", required: true }],
+    tags: ["pdf", "ảnh", "png", "jpg"],
+  },
+  {
+    id: "pdf-watermark",
+    name: "Đóng dấu / Watermark PDF",
+    description:
+      'Đóng chữ mờ như "COPY", "DRAFT" hay tên công ty lên mọi trang PDF, hỗ trợ tiếng Việt có dấu. Xử lý ngay trong trình duyệt.',
+    category: "PDF",
+    icon: "Stamp",
+    status: "active",
+    runsCount: 0,
+    lastRunAt: null,
+    inputs: [
+      { name: "file", label: "File PDF nguồn", type: "file", required: true },
+      { name: "text", label: "Nội dung dấu", type: "text", placeholder: "COPY", required: true },
+    ],
+    tags: ["pdf", "watermark", "đóng dấu"],
+  },
+  {
+    id: "pdf-page-numbers",
+    name: "Đánh số trang PDF",
+    description:
+      "Thêm số trang vào PDF với vị trí và kiểu hiển thị tùy chọn (1, 1/10, Trang 1/10...). Xử lý ngay trong trình duyệt.",
+    category: "PDF",
+    icon: "Hash",
+    status: "active",
+    runsCount: 0,
+    lastRunAt: null,
+    inputs: [{ name: "file", label: "File PDF nguồn", type: "file", required: true }],
+    tags: ["pdf", "số trang"],
+  },
+  {
+    id: "pdf-sign",
+    name: "Ký tên lên PDF",
+    description:
+      "Vẽ chữ ký trực tiếp hoặc dùng ảnh chữ ký có sẵn, chọn trang và vị trí rồi chèn vào PDF. Xử lý ngay trong trình duyệt.",
+    category: "PDF",
+    icon: "PenLine",
+    status: "active",
+    runsCount: 0,
+    lastRunAt: null,
+    inputs: [{ name: "file", label: "File PDF cần ký", type: "file", required: true }],
+    tags: ["pdf", "chữ ký"],
   },
 ]
 

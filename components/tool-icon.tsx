@@ -14,6 +14,13 @@ import {
   Archive,
   DatabaseBackup,
   FileSearch,
+  Combine,
+  LayoutGrid,
+  Images,
+  FileImage,
+  Stamp,
+  Hash,
+  PenLine,
   Wrench,
   type LucideIcon,
 } from "lucide-react"
@@ -34,6 +41,13 @@ const icons: Record<string, LucideIcon> = {
   Archive,
   DatabaseBackup,
   FileSearch,
+  Combine,
+  LayoutGrid,
+  Images,
+  FileImage,
+  Stamp,
+  Hash,
+  PenLine,
 }
 
 export function ToolIcon({ name, className }: { name: string; className?: string }) {
