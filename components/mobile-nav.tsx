@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Wrench, PlusCircle, LayoutTemplate, History, Download, Zap } from "lucide-react"
+import { LayoutDashboard, Wrench, PlusCircle, LayoutTemplate, History, Download } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
 
 const navItems = [
@@ -21,9 +22,7 @@ export function MobileNav() {
     <div className="md:hidden border-b border-[color:var(--card-border)] bg-[color:var(--card)]">
       <div className="flex items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg accent-fill">
-            <Zap className="h-3.5 w-3.5" />
-          </span>
+          <Image src="/logo-dk.svg" alt="" width={28} height={28} className="h-7 w-7" />
           <span className="font-semibold text-black dark:text-white">
             Daka<span className="accent-text">Tool</span>
           </span>
