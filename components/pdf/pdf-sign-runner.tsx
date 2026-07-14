@@ -6,6 +6,7 @@ import type { Tool } from "@/lib/types"
 import { baseName, downloadBytes } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
 import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { useToolRunState } from "./use-tool-run-state"
 
 const POSITIONS: { value: string; label: string; x: number; y: number }[] = [
   { value: "bottom-right", label: "Góc dưới phải", x: 0.78, y: 0.12 },
@@ -18,7 +19,7 @@ const PAD_WIDTH = 480
 const PAD_HEIGHT = 180
 
 /** Ký tên lên PDF: vẽ chữ ký trực tiếp hoặc dùng ảnh chữ ký có sẵn, chọn trang và vị trí. */
-export function PdfSignRunner(_props: { tool: Tool }) {
+export function PdfSignRunner({ tool }: { tool: Tool }) {
   const [file, setFile] = useState<File | null>(null)
   const [pageCount, setPageCount] = useState(0)
   const [pageInput, setPageInput] = useState("cuối")
@@ -26,7 +27,7 @@ export function PdfSignRunner(_props: { tool: Tool }) {
   const [sizeRatio, setSizeRatio] = useState(0.25)
   const [hasDrawing, setHasDrawing] = useState(false)
   const [uploadedSignature, setUploadedSignature] = useState<File | null>(null)
-  const [state, setState] = useState<SimpleRunState>({ step: "idle" })
+  const [state, setState] = useToolRunState(tool)
 
   const padRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef(false)

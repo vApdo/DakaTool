@@ -7,6 +7,7 @@ import type { PageNumberFormat, PageNumberPosition } from "@/lib/pdf/edit"
 import { baseName, downloadBytes } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
 import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { useToolRunState } from "./use-tool-run-state"
 
 const POSITIONS: { value: PageNumberPosition; label: string }[] = [
   { value: "bottom-center", label: "Dưới — giữa" },
@@ -24,12 +25,12 @@ const FORMATS: { value: PageNumberFormat; label: string }[] = [
 ]
 
 /** Đánh số trang cho PDF, chọn vị trí và kiểu hiển thị. */
-export function PdfPageNumbersRunner(_props: { tool: Tool }) {
+export function PdfPageNumbersRunner({ tool }: { tool: Tool }) {
   const [file, setFile] = useState<File | null>(null)
   const [position, setPosition] = useState<PageNumberPosition>("bottom-center")
   const [format, setFormat] = useState<PageNumberFormat>("n")
   const [startAt, setStartAt] = useState(1)
-  const [state, setState] = useState<SimpleRunState>({ step: "idle" })
+  const [state, setState] = useToolRunState(tool)
 
   async function handleApply() {
     if (!file) return

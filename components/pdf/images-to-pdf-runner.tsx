@@ -8,6 +8,7 @@ import { downloadBytes } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
 import { SortableFileList } from "./sortable-file-list"
 import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { useToolRunState } from "./use-tool-run-state"
 
 const PAGE_SIZES: { value: ImagePageSize; label: string }[] = [
   { value: "a4", label: "A4 dọc" },
@@ -32,10 +33,10 @@ async function normalizeImage(file: File): Promise<{ bytes: Uint8Array; type: st
 }
 
 /** Ghép nhiều ảnh thành một file PDF, mỗi ảnh một trang. */
-export function ImagesToPdfRunner(_props: { tool: Tool }) {
+export function ImagesToPdfRunner({ tool }: { tool: Tool }) {
   const [files, setFiles] = useState<File[]>([])
   const [pageSize, setPageSize] = useState<ImagePageSize>("a4")
-  const [state, setState] = useState<SimpleRunState>({ step: "idle" })
+  const [state, setState] = useToolRunState(tool)
   const [thumbs, setThumbs] = useState<Map<File, string>>(new Map())
 
   // Tạo/giải phóng object URL cho ảnh thu nhỏ trong danh sách.

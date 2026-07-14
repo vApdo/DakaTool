@@ -7,6 +7,7 @@ import type { LoadedPdf } from "@/lib/pdf/extract-text"
 import { classifyPdf } from "@/lib/pdf/classify-pdf"
 import { extractHbl } from "@/lib/pdf/extract-hbl"
 import { HBL_FIELD_ORDER, type HblExtractionResult } from "@/lib/pdf/types"
+import { recordRun } from "@/lib/run-history"
 import { PdfUpload } from "./pdf-upload"
 import { PdfPreview } from "./pdf-preview"
 import { ExtractionStatus, type ExtractionState } from "./extraction-status"
@@ -17,8 +18,16 @@ import { HblExtractionForm } from "./hbl-extraction-form"
  * Toàn bộ xử lý diễn ra trong trình duyệt: đọc PDF → phân loại text/scan →
  * trích xuất trường HBL → cho sửa/copy/xuất JSON. Không upload, không lưu file.
  */
-export function HblPdfExtractorRunner(_props: { tool: Tool }) {
+export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
   const [state, setState] = useState<ExtractionState>({ step: "idle" })
+  const runStartedAt = useRef<number | null>(null)
+
+  function finishRun(status: "success" | "failed", summary: string) {
+    const duration =
+      runStartedAt.current !== null ? Math.max(1, Math.round((Date.now() - runStartedAt.current) / 1000)) : null
+    runStartedAt.current = null
+    recordRun({ toolId: tool.id, toolName: tool.name, status, durationSeconds: duration, summary })
+  }
   const [pdf, setPdf] = useState<LoadedPdf | null>(null)
   const [fileName, setFileName] = useState("")
   const [result, setResult] = useState<HblExtractionResult | null>(null)
@@ -38,6 +47,7 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
   async function handleFile(file: File) {
     setResult(null)
     setIsScan(false)
+    runStartedAt.current = Date.now()
     setState({ step: "reading" })
     void pdf?.destroy()
     setPdf(null)
@@ -60,13 +70,12 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
       finishExtraction(loaded.pages, false)
     } catch (err) {
       console.error("PDF load error:", err)
-      setState({
-        step: "error",
-        message:
-          err instanceof Error && err.name === "PasswordException"
-            ? "File PDF có mật khẩu. Hãy gỡ mật khẩu rồi thử lại."
-            : "File có thể bị hỏng hoặc không phải PDF hợp lệ. Hãy thử mở file bằng trình đọc PDF để kiểm tra.",
-      })
+      const message =
+        err instanceof Error && err.name === "PasswordException"
+          ? "File PDF có mật khẩu. Hãy gỡ mật khẩu rồi thử lại."
+          : "File có thể bị hỏng hoặc không phải PDF hợp lệ. Hãy thử mở file bằng trình đọc PDF để kiểm tra."
+      finishRun("failed", message)
+      setState({ step: "error", message })
     }
   }
 
@@ -74,11 +83,16 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
     const extracted = extractHbl(pages)
     setResult(extracted)
     const foundCount = HBL_FIELD_ORDER.filter((k) => extracted[k].status === "found").length
+    finishRun(
+      "success",
+      `Trích xuất ${foundCount}/${HBL_FIELD_ORDER.length} trường từ "${fileName}"${viaOcr ? " (qua OCR)" : ""}.`,
+    )
     setState({ step: "done", foundCount, totalCount: HBL_FIELD_ORDER.length, viaOcr })
   }
 
   async function handleRunOcr() {
     if (!pdf) return
+    runStartedAt.current = Date.now()
     setState({ step: "ocr", progress: 0 })
     try {
       // Render từng trang ra ảnh PNG (scale 2 để đủ nét cho OCR).
@@ -109,19 +123,18 @@ export function HblPdfExtractorRunner(_props: { tool: Tool }) {
 
       const hasText = pages.some((p) => p.items.length > 0)
       if (!hasText) {
-        setState({
-          step: "error",
-          message: "OCR không đọc được chữ nào từ bản scan này. Ảnh có thể quá mờ hoặc nghiêng.",
-        })
+        const message = "OCR không đọc được chữ nào từ bản scan này. Ảnh có thể quá mờ hoặc nghiêng."
+        finishRun("failed", message)
+        setState({ step: "error", message })
         return
       }
       finishExtraction(pages, true)
     } catch (err) {
       console.error("OCR error:", err)
-      setState({
-        step: "error",
-        message: "OCR gặp lỗi khi xử lý. Hãy thử lại; nếu vẫn lỗi, bản scan có thể quá lớn hoặc trình duyệt chặn Web Worker.",
-      })
+      const message =
+        "OCR gặp lỗi khi xử lý. Hãy thử lại; nếu vẫn lỗi, bản scan có thể quá lớn hoặc trình duyệt chặn Web Worker."
+      finishRun("failed", message)
+      setState({ step: "error", message })
     }
   }
 

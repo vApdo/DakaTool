@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ArrowRight, Wrench, PlayCircle, History, LayoutTemplate, Zap } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AnimatedSection } from "@/components/animated-section"
-import { tools, runs } from "@/lib/data"
+import { tools } from "@/lib/data"
 
 const features = [
   {
@@ -54,7 +54,7 @@ function HeroBackdrop() {
 
 export default function HomePage() {
   const activeTools = tools.filter((t) => t.status === "active").length
-  const totalRuns = tools.reduce((sum, t) => sum + t.runsCount, 0)
+  const pdfTools = tools.filter((t) => t.category === "PDF").length
 
   return (
     <div className="container">
@@ -102,12 +102,12 @@ export default function HomePage() {
                 <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Tool sẵn sàng</dt>
               </div>
               <div>
-                <dd className="text-3xl font-semibold text-black dark:text-white">{totalRuns}</dd>
-                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Lượt chạy</dt>
+                <dd className="text-3xl font-semibold text-black dark:text-white">{pdfTools}</dd>
+                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Tool xử lý PDF</dt>
               </div>
               <div>
-                <dd className="text-3xl font-semibold text-black dark:text-white">Hôm nay</dd>
-                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Lần chạy gần nhất</dt>
+                <dd className="text-3xl font-semibold text-black dark:text-white">100%</dd>
+                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Xử lý trên máy bạn</dt>
               </div>
             </dl>
           </div>
@@ -151,7 +151,8 @@ export default function HomePage() {
             <div>
               <h2 className="text-2xl font-semibold text-black dark:text-white md:text-3xl">Hoạt động gần đây</h2>
               <p className="mt-2 max-w-xl text-sm text-gray-700 dark:text-[color:var(--muted-foreground)]">
-                {runs[1].summary} — và {runs.length - 1} lần chạy khác trong tuần này.
+                Mỗi lần chạy tool đều được ghi lại trên trình duyệt của bạn: chạy lúc nào, mất bao lâu, kết quả ra
+                sao.
               </p>
             </div>
             <Link href="/history" className="btn-outline">

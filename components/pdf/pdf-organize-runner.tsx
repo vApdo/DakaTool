@@ -6,6 +6,7 @@ import type { Tool } from "@/lib/types"
 import { baseName, downloadBytes } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
 import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { useToolRunState } from "./use-tool-run-state"
 
 interface PageItem {
   /** Chỉ số trang trong file gốc (0-based). */
@@ -16,10 +17,10 @@ interface PageItem {
 }
 
 /** Xoay, xóa và đổi thứ tự trang PDF bằng lưới ảnh thu nhỏ, rồi xuất file mới. */
-export function PdfOrganizeRunner(_props: { tool: Tool }) {
+export function PdfOrganizeRunner({ tool }: { tool: Tool }) {
   const [file, setFile] = useState<File | null>(null)
   const [pages, setPages] = useState<PageItem[]>([])
-  const [state, setState] = useState<SimpleRunState>({ step: "idle" })
+  const [state, setState] = useToolRunState(tool)
 
   async function handlePick(files: File[]) {
     const picked = files[0]

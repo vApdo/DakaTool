@@ -6,13 +6,14 @@ import type { Tool } from "@/lib/types"
 import { baseName, downloadBytes, downloadAsZip } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
 import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { useToolRunState } from "./use-tool-run-state"
 
 /** Tách PDF thành từng trang hoặc theo khoảng trang; nhiều file kết quả được gói ZIP. */
-export function PdfSplitRunner(_props: { tool: Tool }) {
+export function PdfSplitRunner({ tool }: { tool: Tool }) {
   const [file, setFile] = useState<File | null>(null)
   const [pageCount, setPageCount] = useState(0)
   const [ranges, setRanges] = useState("")
-  const [state, setState] = useState<SimpleRunState>({ step: "idle" })
+  const [state, setState] = useToolRunState(tool)
 
   async function handlePick(files: File[]) {
     const picked = files[0]

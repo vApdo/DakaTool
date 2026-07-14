@@ -6,6 +6,7 @@ import type { Tool } from "@/lib/types"
 import { baseName, downloadBytes } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
 import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { useToolRunState } from "./use-tool-run-state"
 
 const COLORS: { value: string; label: string; css: string }[] = [
   { value: "gray", label: "Xám", css: "#6b7280" },
@@ -50,13 +51,13 @@ function renderWatermarkPng(text: string, colorCss: string, diagonal: boolean): 
 }
 
 /** Đóng chữ mờ (COPY, DRAFT, tên công ty...) lên mọi trang của PDF. */
-export function PdfWatermarkRunner(_props: { tool: Tool }) {
+export function PdfWatermarkRunner({ tool }: { tool: Tool }) {
   const [file, setFile] = useState<File | null>(null)
   const [text, setText] = useState("COPY")
   const [color, setColor] = useState("gray")
   const [opacity, setOpacity] = useState(0.2)
   const [diagonal, setDiagonal] = useState(true)
-  const [state, setState] = useState<SimpleRunState>({ step: "idle" })
+  const [state, setState] = useToolRunState(tool)
 
   async function handleApply() {
     if (!file || !text.trim()) return

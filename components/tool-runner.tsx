@@ -70,7 +70,8 @@ export function ToolRunner({ tool }: { tool: Tool }) {
     <div className="card p-6">
       <h2 className="mb-1 text-lg font-semibold text-black dark:text-white">Chạy tool</h2>
       <p className="mb-5 text-sm text-gray-600 dark:text-gray-400">
-        Điền thông tin bên dưới rồi bấm Chạy. Bản MVP mô phỏng tiến trình, chưa thực thi thật.
+        Tool này đang được triển khai. Bạn có thể chạy thử bên dưới — tiến trình chỉ là mô phỏng, chưa thực thi
+        thật và không ghi vào lịch sử.
       </p>
 
       <form onSubmit={handleRun} className="space-y-4">
@@ -162,7 +163,7 @@ export function ToolRunner({ tool }: { tool: Tool }) {
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
               <p className="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-4 w-4" />
-                Chạy xong. Kết quả đã lưu vào lịch sử.
+                Chạy thử (mô phỏng) hoàn tất. Khi tool được triển khai thật, kết quả sẽ được ghi vào lịch sử.
               </p>
               <Link href="/export" className="btn-outline">
                 <Download className="h-4 w-4" />

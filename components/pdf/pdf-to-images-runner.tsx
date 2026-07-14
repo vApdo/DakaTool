@@ -6,6 +6,7 @@ import type { Tool } from "@/lib/types"
 import { baseName, downloadBlob, downloadAsZip } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
 import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { useToolRunState } from "./use-tool-run-state"
 
 type ImageFormat = "png" | "jpeg"
 
@@ -15,11 +16,11 @@ const QUALITY_SCALES: { value: string; label: string; scale: number }[] = [
 ]
 
 /** Xuất từng trang PDF thành ảnh PNG/JPG; nhiều trang được gói ZIP. */
-export function PdfToImagesRunner(_props: { tool: Tool }) {
+export function PdfToImagesRunner({ tool }: { tool: Tool }) {
   const [file, setFile] = useState<File | null>(null)
   const [format, setFormat] = useState<ImageFormat>("png")
   const [quality, setQuality] = useState("web")
-  const [state, setState] = useState<SimpleRunState>({ step: "idle" })
+  const [state, setState] = useToolRunState(tool)
 
   async function handleConvert() {
     if (!file) return
