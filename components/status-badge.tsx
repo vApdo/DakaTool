@@ -38,7 +38,7 @@ export function ToolStatusBadge({ status }: { status: ToolStatus }) {
   }
   return (
     <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-      Bản nháp
+      Đang triển khai
     </span>
   )
 }

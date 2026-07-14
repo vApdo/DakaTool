@@ -5,12 +5,25 @@ import Link from "next/link"
 import { Search } from "lucide-react"
 import type { Tool } from "@/lib/types"
 import { CATEGORIES, formatDateTime } from "@/lib/data"
+import { useRunHistory } from "@/lib/run-history"
 import { ToolIcon } from "./tool-icon"
 import { ToolStatusBadge } from "./status-badge"
 
 export function ToolList({ tools }: { tools: Tool[] }) {
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<string>("Tất cả")
+  const runs = useRunHistory()
+
+  // Số lượt chạy và lần chạy cuối THẬT cho từng tool, từ lịch sử trên trình duyệt.
+  const runStats = useMemo(() => {
+    const stats = new Map<string, { count: number; lastRunAt: string }>()
+    for (const run of runs) {
+      const current = stats.get(run.toolId)
+      if (current) current.count += 1
+      else stats.set(run.toolId, { count: 1, lastRunAt: run.startedAt })
+    }
+    return stats
+  }, [runs])
 
   const filtered = useMemo(() => {
     return tools.filter((tool) => {
@@ -88,7 +101,7 @@ export function ToolList({ tools }: { tools: Tool[] }) {
                   {tool.category}
                 </span>
                 <span>
-                  {tool.runsCount} lượt · {formatDateTime(tool.lastRunAt)}
+                  {runStats.get(tool.id)?.count ?? 0} lượt · {formatDateTime(runStats.get(tool.id)?.lastRunAt ?? null)}
                 </span>
               </div>
             </Link>
