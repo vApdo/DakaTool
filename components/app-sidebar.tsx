@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
@@ -10,7 +11,6 @@ import {
   History,
   Download,
   Bitcoin,
-  Zap,
 } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
 
@@ -30,9 +30,7 @@ export function AppSidebar() {
   return (
     <aside className="flex h-full flex-col border-r border-[color:var(--card-border)] bg-[color:var(--card)]">
       <div className="flex items-center gap-2 px-5 py-5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg accent-fill">
-          <Zap className="h-4 w-4" />
-        </span>
+        <Image src="/logo-dk.svg" alt="" width={32} height={32} className="h-8 w-8" />
         <Link href="/" className="text-lg font-semibold text-black dark:text-white">
           Daka<span className="accent-text">Tool</span>
         </Link>

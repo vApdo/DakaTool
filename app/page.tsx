@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { ArrowRight, Wrench, PlayCircle, History, LayoutTemplate, Zap } from "lucide-react"
+import Image from "next/image"
+import { ArrowRight, Wrench, PlayCircle, History, LayoutTemplate } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AnimatedSection } from "@/components/animated-section"
 import { tools } from "@/lib/data"
@@ -60,9 +61,7 @@ export default function HomePage() {
     <div className="container">
       <header className="flex items-center justify-between py-5">
         <div className="flex items-center gap-2">
-          <span className="accent-fill flex h-8 w-8 items-center justify-center rounded-lg">
-            <Zap className="h-4 w-4" />
-          </span>
+          <Image src="/logo-dk.svg" alt="" width={32} height={32} className="h-8 w-8" />
           <span className="text-lg font-semibold text-black dark:text-white">
             Daka<span className="accent-text">Tool</span>
           </span>
