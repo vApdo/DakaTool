@@ -2,8 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Bot, KeyRound, Loader2, RefreshCw, ScanSearch } from "lucide-react"
-import type { AiProvider, AiSettings } from "@/lib/crypto/ai-analyst"
-import { DEFAULT_MODELS, aiErrorMessage, buildAnalysisPrompt, runAnalysis } from "@/lib/crypto/ai-analyst"
+import type { AiProvider, AiSettings, ServerAiStatus } from "@/lib/crypto/ai-analyst"
+import {
+  DEFAULT_MODELS,
+  aiErrorMessage,
+  buildAnalysisPrompt,
+  fetchServerAiStatus,
+  runAnalysis,
+  runAnalysisViaServer,
+} from "@/lib/crypto/ai-analyst"
 import type { CandleResult, CoinRow } from "@/lib/crypto/market-data"
 import { fetchDailyCandles, fetchTopCoins } from "@/lib/crypto/market-data"
 import { dailyVolatility, maxDrawdown, rsi, sma } from "@/lib/crypto/indicators"
@@ -61,12 +68,17 @@ export function CryptoWorkspace() {
   const [settings, setSettings] = useState<AiSettings>(DEFAULT_SETTINGS)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [showKey, setShowKey] = useState(false)
+  const [serverAi, setServerAi] = useState<ServerAiStatus | null>(null)
 
   // Đọc cài đặt đã lưu sau khi mount để HTML server và client khớp nhau (tránh lỗi hydration).
   useEffect(() => {
     setSettings(loadSettings())
     setSettingsLoaded(true)
+    // Admin đã cấu hình AI chung chưa? Có thì người dùng khỏi cần nhập key.
+    void fetchServerAiStatus().then(setServerAi)
   }, [])
+
+  const useServerAi = serverAi?.configured === true
   const [question, setQuestion] = useState(PRESET_QUESTIONS[0])
   const [report, setReport] = useState<string | null>(null)
   const [aiState, setAiState] = useState<SimpleRunState>({ step: "idle" })
@@ -133,13 +145,14 @@ export function CryptoWorkspace() {
   }, [candleResult])
 
   async function handleAnalyze() {
-    if (!selected || !candleResult || !settings.apiKey.trim() || !question.trim()) return
+    if (!selected || !candleResult || !question.trim()) return
+    if (!useServerAi && !settings.apiKey.trim()) return
     setAiState({ step: "working", message: "AI đang phân tích trên dữ liệu giá thật..." })
     setReport(null)
     const startedAt = Date.now()
     try {
       const prompt = buildAnalysisPrompt(selected, candleResult.candles, candleResult.source, question.trim())
-      const text = await runAnalysis(settings, prompt)
+      const text = useServerAi ? await runAnalysisViaServer(prompt) : await runAnalysis(settings, prompt)
       setReport(text)
       setAiState({ step: "done", message: "Đã có báo cáo phân tích." })
       recordRun({
@@ -251,6 +264,13 @@ export function CryptoWorkspace() {
             Hỏi AI trên dữ liệu thật
           </h2>
 
+          {useServerAi ? (
+            <p className="mb-4 flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              <KeyRound className="h-3.5 w-3.5 shrink-0" />
+              AI đã được quản trị viên cấu hình sẵn ({serverAi?.provider === "openai" ? "OpenAI" : "Claude"} ·{" "}
+              {serverAi?.model}) — bạn chỉ việc đặt câu hỏi.
+            </p>
+          ) : (
           <div className="mb-4 space-y-3 rounded-xl border border-[color:var(--card-border)] p-3">
             <p className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">
               <KeyRound className="h-3.5 w-3.5" />
@@ -301,6 +321,7 @@ export function CryptoWorkspace() {
               </div>
             </div>
           </div>
+          )}
 
           <label htmlFor="ai-question" className="field-label">Câu hỏi nghiên cứu</label>
           <textarea
@@ -326,14 +347,20 @@ export function CryptoWorkspace() {
           <button
             type="button"
             onClick={handleAnalyze}
-            disabled={!selected || !candleResult || !settings.apiKey.trim() || !question.trim() || aiState.step === "working"}
+            disabled={
+              !selected ||
+              !candleResult ||
+              (!useServerAi && !settings.apiKey.trim()) ||
+              !question.trim() ||
+              aiState.step === "working"
+            }
             className="btn-primary mt-4"
           >
             {aiState.step === "working" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanSearch className="h-4 w-4" />}
             Phân tích {selected ? selected.symbol : ""}
           </button>
           {!selected && <p className="mt-2 text-xs text-gray-500">Chọn một coin ở bảng bên trái trước.</p>}
-          {selected && !settings.apiKey.trim() && (
+          {selected && !useServerAi && !settings.apiKey.trim() && (
             <p className="mt-2 text-xs text-gray-500">Nhập API key của bạn để chạy phân tích.</p>
           )}
           <div className="mt-3">

@@ -138,6 +138,36 @@ export async function runAnalysis(settings: AiSettings, prompt: string): Promise
   return text
 }
 
+export interface ServerAiStatus {
+  configured: boolean
+  provider?: AiProvider
+  model?: string
+}
+
+/** Hỏi server xem admin đã cấu hình AI chung chưa (không nhận key, chỉ trạng thái). */
+export async function fetchServerAiStatus(): Promise<ServerAiStatus> {
+  try {
+    const res = await fetch("/api/ai/config")
+    if (!res.ok) return { configured: false }
+    return (await res.json()) as ServerAiStatus
+  } catch {
+    return { configured: false }
+  }
+}
+
+/** Chạy phân tích qua server (key của tổ chức, admin cấu hình) — người dùng không cần key. */
+export async function runAnalysisViaServer(prompt: string): Promise<string> {
+  const res = await fetch("/api/ai/analyze", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ prompt }),
+  })
+  const data = (await res.json().catch(() => null)) as { text?: string; error?: string } | null
+  if (!res.ok) throw new Error(data?.error ?? `Server trả về lỗi ${res.status}.`)
+  if (!data?.text) throw new Error("Server không trả về nội dung nào.")
+  return data.text
+}
+
 /** Đổi lỗi API AI thành thông báo tiếng Việt dễ hiểu. */
 export function aiErrorMessage(err: unknown): string {
   if (err instanceof Error) {
