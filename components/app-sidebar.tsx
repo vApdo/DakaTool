@@ -10,6 +10,7 @@ import {
   LayoutTemplate,
   History,
   Download,
+  Bitcoin,
 } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
 
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tools", label: "Danh sách Tool", icon: Wrench },
   { href: "/tools/new", label: "Tạo Tool mới", icon: PlusCircle },
+  { href: "/crypto", label: "Crypto Research", icon: Bitcoin },
   { href: "/templates", label: "Thư viện Template", icon: LayoutTemplate },
   { href: "/history", label: "Lịch sử chạy", icon: History },
   { href: "/export", label: "Export kết quả", icon: Download },
