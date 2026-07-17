@@ -15,19 +15,26 @@ import type { PageText } from "./types"
  * - OCRmyPDF, Google Document AI, Azure Document Intelligence, AWS Textract.
  */
 
-/** Ảnh một trang PDF đã render, kèm thông tin để quy đổi tọa độ pixel → tọa độ PDF. */
-export interface OcrPageImage {
-  pageNumber: number
+/** Kết quả render một trang PDF ra ảnh, kèm kích thước pixel. */
+export interface OcrRenderResult {
   blob: Blob
   widthPx: number
   heightPx: number
+}
+
+/**
+ * Yêu cầu OCR kiểu LAZY: provider tự gọi renderPage cho từng trang khi cần,
+ * nên tại một thời điểm chỉ một ảnh trang nằm trong bộ nhớ (giảm nguy cơ hết RAM
+ * trên điện thoại). Cũng dùng renderPage để thử lại các góc xoay 90/180/270°.
+ */
+export interface OcrRequest {
+  pageCount: number
   /** Hệ số scale đã dùng khi render (pixel = đơn vị PDF × scale). */
   scale: number
-  /**
-   * Render lại trang ở góc xoay khác (90/180/270°) — provider dùng khi nghi ngờ
-   * bản scan bị đặt ngược/nghiêng (confidence thấp). Trả về ảnh và kích thước mới.
-   */
-  render?: (rotation: number) => Promise<{ blob: Blob; widthPx: number; heightPx: number }>
+  /** Render một trang ở góc xoay cho trước (0/90/180/270). Người gọi tự giải phóng canvas sau đó. */
+  renderPage(pageNumber: number, rotation: number): Promise<OcrRenderResult>
+  /** Cho phép hủy giữa chừng; provider kiểm tra giữa các trang và ném lỗi có name "AbortError". */
+  signal?: AbortSignal
 }
 
 export interface OcrProvider {
@@ -36,10 +43,10 @@ export interface OcrProvider {
   /** true nếu chạy hoàn toàn trong trình duyệt, không gửi file ra ngoài. */
   runsInBrowser: boolean
   /**
-   * Nhận dạng chữ từ ảnh các trang. onProgress nhận giá trị 0..1 (tiến độ thật
-   * từ engine, không phải mô phỏng).
+   * Nhận dạng chữ từ các trang PDF. onProgress nhận giá trị 0..1 (tiến độ thật
+   * từ engine, không phải mô phỏng). Xử lý tuần tự từng trang.
    */
-  recognize(pages: OcrPageImage[], onProgress?: (progress: number) => void): Promise<PageText[]>
+  recognize(request: OcrRequest, onProgress?: (progress: number) => void): Promise<PageText[]>
 }
 
 export const ocrProviderRegistry: Record<string, OcrProvider> = {}

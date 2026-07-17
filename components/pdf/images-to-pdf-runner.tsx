@@ -5,6 +5,7 @@ import { FileText } from "lucide-react"
 import type { Tool } from "@/lib/types"
 import type { ImagePageSize } from "@/lib/pdf/edit"
 import { downloadBytes } from "@/lib/download"
+import { formatBytes } from "@/lib/pdf/limits"
 import { FileDropZone } from "./file-drop-zone"
 import { SortableFileList } from "./sortable-file-list"
 import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
@@ -70,6 +71,7 @@ export function ImagesToPdfRunner({ tool }: { tool: Tool }) {
       <FileDropZone
         accept="image/*"
         multiple
+        existingFiles={files}
         title="Kéo thả ảnh (JPG, PNG...) vào đây"
         subtitle="chụp chứng từ bằng điện thoại rồi thả vào cũng được"
         onFiles={(added) => {
@@ -80,7 +82,9 @@ export function ImagesToPdfRunner({ tool }: { tool: Tool }) {
       {files.length > 0 && (
         <>
           <div>
-            <p className="field-label mb-2">Thứ tự trang ({files.length} ảnh)</p>
+            <p className="field-label mb-2">
+              Thứ tự trang ({files.length} ảnh · {formatBytes(files.reduce((s, f) => s + f.size, 0))})
+            </p>
             <SortableFileList
               files={files}
               onChange={setFiles}

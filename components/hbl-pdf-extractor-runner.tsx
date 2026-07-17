@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ScanLine } from "lucide-react"
+import { ScanLine, X } from "lucide-react"
 import type { Tool } from "@/lib/types"
 import type { LoadedPdf } from "@/lib/pdf/extract-text"
 import { classifyPdf } from "@/lib/pdf/classify-pdf"
 import { extractHbl } from "@/lib/pdf/extract-hbl"
+import { PDF_LIMITS } from "@/lib/pdf/limits"
 import { HBL_FIELD_ORDER, type HblExtractionResult } from "@/lib/pdf/types"
 import { recordRun } from "@/lib/run-history"
 import { PdfUpload } from "./pdf-upload"
@@ -21,6 +22,9 @@ import { HblExtractionForm } from "./hbl-extraction-form"
 export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
   const [state, setState] = useState<ExtractionState>({ step: "idle" })
   const runStartedAt = useRef<number | null>(null)
+  // Tên file đang xử lý, giữ trong ref để không phụ thuộc state cập nhật bất đồng bộ
+  // khi build summary lịch sử (state fileName có thể chưa kịp đổi trong cùng tick).
+  const processedFileName = useRef("")
 
   function finishRun(status: "success" | "failed", summary: string) {
     const duration =
@@ -33,6 +37,9 @@ export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
   const [result, setResult] = useState<HblExtractionResult | null>(null)
   const [isScan, setIsScan] = useState(false)
   const pdfRef = useRef<LoadedPdf | null>(null)
+  // Chống cập nhật state sau khi component unmount, và cho phép hủy OCR đang chạy.
+  const mountedRef = useRef(true)
+  const abortRef = useRef<AbortController | null>(null)
 
   // Giải phóng tài nguyên pdf.js khi unmount hoặc thay file.
   useEffect(() => {
@@ -40,6 +47,8 @@ export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
   }, [pdf])
   useEffect(() => {
     return () => {
+      mountedRef.current = false
+      abortRef.current?.abort()
       void pdfRef.current?.destroy()
     }
   }, [])
@@ -48,6 +57,7 @@ export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
     setResult(null)
     setIsScan(false)
     runStartedAt.current = Date.now()
+    processedFileName.current = file.name
     setState({ step: "reading" })
     void pdf?.destroy()
     setPdf(null)
@@ -67,7 +77,7 @@ export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
         return
       }
 
-      finishExtraction(loaded.pages, false)
+      finishExtraction(loaded.pages, false, file.name)
     } catch (err) {
       console.error("PDF load error:", err)
       const message =
@@ -79,47 +89,55 @@ export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
     }
   }
 
-  function finishExtraction(pages: LoadedPdf["pages"], viaOcr: boolean) {
+  // processedName được truyền tường minh (không đọc state fileName) để summary
+  // luôn khớp đúng file vừa xử lý ở cả luồng text lẫn OCR.
+  function finishExtraction(pages: LoadedPdf["pages"], viaOcr: boolean, processedName: string) {
     const extracted = extractHbl(pages)
     setResult(extracted)
     const foundCount = HBL_FIELD_ORDER.filter((k) => extracted[k].status === "found").length
     finishRun(
       "success",
-      `Trích xuất ${foundCount}/${HBL_FIELD_ORDER.length} trường từ "${fileName}"${viaOcr ? " (qua OCR)" : ""}.`,
+      `Trích xuất ${foundCount}/${HBL_FIELD_ORDER.length} trường từ "${processedName}"${viaOcr ? " (qua OCR)" : ""}.`,
     )
     setState({ step: "done", foundCount, totalCount: HBL_FIELD_ORDER.length, viaOcr })
   }
 
   async function handleRunOcr() {
-    if (!pdf) return
+    const activePdf = pdf
+    if (!activePdf) return
+    const controller = new AbortController()
+    abortRef.current = controller
     runStartedAt.current = Date.now()
     setState({ step: "ocr", progress: 0 })
-    try {
-      // Render từng trang ra ảnh PNG (scale 2 để đủ nét cho OCR).
-      const scale = 2
-      const renderToBlob = async (pageNumber: number, rotation: number) => {
-        const canvas = document.createElement("canvas")
-        await pdf.renderPage(pageNumber, canvas, { scale, rotation })
+
+    // Render một trang ra ảnh PNG (scale 2 để đủ nét cho OCR) rồi GIẢI PHÓNG canvas ngay.
+    // Provider gọi hàm này lần lượt từng trang nên mỗi lúc chỉ một ảnh trong RAM.
+    const scale = 2
+    const renderPage = async (pageNumber: number, rotation: number) => {
+      const canvas = document.createElement("canvas")
+      try {
+        await activePdf.renderPage(pageNumber, canvas, { scale, rotation })
         const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))
         if (!blob) throw new Error("canvas.toBlob failed")
         return { blob, widthPx: canvas.width, heightPx: canvas.height }
+      } finally {
+        // Xóa pixel buffer của canvas ngay — quan trọng để tránh dồn RAM trên điện thoại.
+        canvas.width = 0
+        canvas.height = 0
       }
-      const images = []
-      for (let pageNumber = 1; pageNumber <= pdf.pageCount; pageNumber++) {
-        const rendered = await renderToBlob(pageNumber, 0)
-        images.push({
-          pageNumber,
-          ...rendered,
-          scale,
-          // Cho provider render lại khi phát hiện bản scan bị xoay ngược/nghiêng.
-          render: (rotation: number) => renderToBlob(pageNumber, rotation),
-        })
-      }
+    }
 
+    try {
+      // OCR rất tốn RAM/CPU — chỉ xử lý tối đa PDF_LIMITS.ocrMaxPages trang đầu.
+      const ocrPageCount = Math.min(activePdf.pageCount, PDF_LIMITS.ocrMaxPages)
       const { tesseractOcrProvider } = await import("@/lib/pdf/ocr-tesseract")
-      const pages = await tesseractOcrProvider.recognize(images, (progress) =>
-        setState({ step: "ocr", progress }),
+      const pages = await tesseractOcrProvider.recognize(
+        { pageCount: ocrPageCount, scale, renderPage, signal: controller.signal },
+        (progress) => {
+          if (mountedRef.current) setState({ step: "ocr", progress })
+        },
       )
+      if (!mountedRef.current) return
 
       const hasText = pages.some((p) => p.items.length > 0)
       if (!hasText) {
@@ -128,17 +146,31 @@ export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
         setState({ step: "error", message })
         return
       }
-      finishExtraction(pages, true)
+      finishExtraction(pages, true, processedFileName.current)
     } catch (err) {
+      if ((err as Error)?.name === "AbortError") {
+        // Người dùng hủy: quay lại trạng thái cần OCR, không tính là lỗi hay lần chạy.
+        runStartedAt.current = null
+        if (mountedRef.current) setState({ step: "needs-ocr", pageCount: activePdf.pageCount })
+        return
+      }
       console.error("OCR error:", err)
+      if (!mountedRef.current) return
       const message =
         "OCR gặp lỗi khi xử lý. Hãy thử lại; nếu vẫn lỗi, bản scan có thể quá lớn hoặc trình duyệt chặn Web Worker."
       finishRun("failed", message)
       setState({ step: "error", message })
+    } finally {
+      abortRef.current = null
     }
   }
 
+  function handleCancelOcr() {
+    abortRef.current?.abort()
+  }
+
   function handleClear() {
+    abortRef.current?.abort()
     void pdf?.destroy()
     setPdf(null)
     setResult(null)
@@ -168,6 +200,12 @@ export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
             <button type="button" onClick={handleRunOcr} className="btn-primary mt-4">
               <ScanLine className="h-4 w-4" />
               {state.step === "error" ? "Thử OCR lại" : "Nhận dạng bằng OCR"}
+            </button>
+          )}
+          {state.step === "ocr" && (
+            <button type="button" onClick={handleCancelOcr} className="btn-secondary mt-4">
+              <X className="h-4 w-4" />
+              Hủy OCR
             </button>
           )}
           {result && state.step === "done" && (
