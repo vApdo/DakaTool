@@ -42,3 +42,6 @@ __pycache__/
 .pytest_cache/
 /models/
 services/subtitle-engine/*.egg-info/
+
+# Redis dump khi chạy redis-server tại repo
+dump.rdb

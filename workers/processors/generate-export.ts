@@ -8,6 +8,7 @@ import { readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import type { Job } from "bullmq"
 import { ERROR_CODES, JOB_TIMEOUT_MS } from "@/lib/auto-subtitle/constants"
+import { isFinalAttempt } from "@/lib/auto-subtitle/retry"
 import * as repo from "@/lib/auto-subtitle/repository"
 import type { ExportJobData } from "@/lib/queue/subtitle-queue"
 import { buildStorageKey, getStorage } from "@/lib/storage"
@@ -78,6 +79,15 @@ export async function processGenerateExport(job: Job<ExportJobData>): Promise<vo
     await repo.updateJob(jobId, { status: "COMPLETED", progress: 100, completedAt: new Date() })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
+    // Lỗi tạm thời & còn lượt thử → ném lại để BullMQ retry.
+    if (!isFinalAttempt(job)) {
+      await repo.updateJob(jobId, {
+        status: "QUEUED",
+        attempts: job.attemptsMade + 1,
+        errorMessage: message,
+      })
+      throw err
+    }
     await repo.failExport(exportId, message)
     await repo.updateJob(jobId, {
       status: "FAILED",

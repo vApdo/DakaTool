@@ -10,6 +10,7 @@ import { readFile, stat, writeFile } from "node:fs/promises"
 import path from "node:path"
 import type { Job } from "bullmq"
 import { ERROR_CODES, JOB_TIMEOUT_MS } from "@/lib/auto-subtitle/constants"
+import { isFinalAttempt, isRetryable } from "@/lib/auto-subtitle/retry"
 import * as repo from "@/lib/auto-subtitle/repository"
 import type { RenderJobData } from "@/lib/queue/subtitle-queue"
 import { buildStorageKey, getStorage } from "@/lib/storage"
@@ -113,6 +114,17 @@ export async function processRenderVideo(job: Job<RenderJobData>): Promise<void>
     const message = err instanceof Error ? err.message : String(err)
     const code =
       message === "JOB_TIMEOUT" ? ERROR_CODES.JOB_TIMEOUT : ERROR_CODES.RENDER_FAILED
+    // Lỗi tạm thời & còn lượt thử → ném lại để BullMQ retry.
+    if (isRetryable(code) && !isFinalAttempt(job)) {
+      await repo.updateJob(jobId, {
+        status: "QUEUED",
+        attempts: job.attemptsMade + 1,
+        errorCode: code,
+        errorMessage: message,
+      })
+      await repo.updateProjectProgress(projectId, { status: "READY" })
+      throw err
+    }
     await repo.failExport(exportId, message)
     await repo.updateJob(jobId, {
       status: "FAILED",

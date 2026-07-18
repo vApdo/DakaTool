@@ -17,6 +17,7 @@ import {
   JOB_TIMEOUT_MS,
   truncateError,
 } from "@/lib/auto-subtitle/constants"
+import { isFinalAttempt, isRetryable } from "@/lib/auto-subtitle/retry"
 import * as repo from "@/lib/auto-subtitle/repository"
 import type { EngineResult } from "@/lib/auto-subtitle/types"
 import { buildStorageKey, getStorage } from "@/lib/storage"
@@ -94,16 +95,32 @@ export async function processTranscribe(job: Job<TranscribeJobData>): Promise<vo
 
     if (result.errorEvent) {
       const code = result.errorEvent.code ?? ERROR_CODES.TRANSCRIPTION_FAILED
+      if (isRetryable(code) && !isFinalAttempt(job)) {
+        await repo.updateJob(jobId, {
+          status: "QUEUED",
+          attempts: job.attemptsMade + 1,
+          errorCode: code,
+          errorMessage: truncateError(result.errorEvent.message),
+        })
+        await repo.updateProjectProgress(projectId, { status: "QUEUED" })
+        throw new Error(result.errorEvent.message)
+      }
       await repo.failJobAndProject(jobId, projectId, code, result.errorEvent.message)
       return
     }
     if (result.exitCode !== 0 || !result.completedResultPath) {
-      await repo.failJobAndProject(
-        jobId,
-        projectId,
-        ERROR_CODES.TRANSCRIPTION_FAILED,
-        `Engine thoát mã ${result.exitCode}. ${result.stderrTail}`,
-      )
+      const message = `Engine thoát mã ${result.exitCode}. ${result.stderrTail}`
+      if (!isFinalAttempt(job)) {
+        await repo.updateJob(jobId, {
+          status: "QUEUED",
+          attempts: job.attemptsMade + 1,
+          errorCode: ERROR_CODES.TRANSCRIPTION_FAILED,
+          errorMessage: truncateError(message),
+        })
+        await repo.updateProjectProgress(projectId, { status: "QUEUED" })
+        throw new Error(message)
+      }
+      await repo.failJobAndProject(jobId, projectId, ERROR_CODES.TRANSCRIPTION_FAILED, message)
       return
     }
 
@@ -152,6 +169,18 @@ export async function processTranscribe(job: Job<TranscribeJobData>): Promise<vo
     const message = err instanceof Error ? err.message : String(err)
     const code =
       message === "JOB_TIMEOUT" ? ERROR_CODES.JOB_TIMEOUT : ERROR_CODES.UNKNOWN_ERROR
+
+    // Lỗi tạm thời & còn lượt thử → ném lại để BullMQ retry (attempts + backoff).
+    if (isRetryable(code) && !isFinalAttempt(job)) {
+      await repo.updateJob(jobId, {
+        status: "QUEUED",
+        attempts: job.attemptsMade + 1,
+        errorCode: code,
+        errorMessage: truncateError(message),
+      })
+      await repo.updateProjectProgress(projectId, { status: "QUEUED" })
+      throw err
+    }
     await repo.failJobAndProject(jobId, projectId, code, truncateError(message))
   } finally {
     await temp.cleanup()
