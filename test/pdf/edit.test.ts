@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { PDFDocument } from "pdf-lib"
+import { PDFDocument, PDFDict, PDFName } from "pdf-lib"
 import { parsePageRanges } from "@/lib/pdf/page-ranges"
 import {
   addPageNumbers,
@@ -9,15 +9,27 @@ import {
   splitPdf,
   stampImage,
 } from "@/lib/pdf/edit"
+import { loadPagesFromPdfBytes } from "./fixtures"
 
-/** Tạo PDF n trang trong bộ nhớ để test. */
-async function makePdf(pageCount: number): Promise<Uint8Array> {
+/**
+ * Kiểm thử thao tác PDF trên fixture dựng trong test (không dùng chứng từ thật).
+ * Mỗi trang nguồn có CHIỀU RỘNG khác nhau để nhận diện trang → kiểm được đúng
+ * thứ tự / xóa / xoay, không chỉ đếm số trang.
+ */
+
+/** PDF với các trang có chiều rộng cho trước (dùng width làm "mã" nhận diện trang). */
+async function makeSizedPdf(widths: number[]): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
-  for (let i = 0; i < pageCount; i++) doc.addPage([595, 842])
+  for (const w of widths) doc.addPage([w, 400])
   return doc.save()
 }
 
-// PNG 1x1 pixel đỏ, đủ cho test stamp.
+async function pageWidths(bytes: Uint8Array): Promise<number[]> {
+  const doc = await PDFDocument.load(bytes)
+  return doc.getPages().map((p) => Math.round(p.getWidth()))
+}
+
+/** PNG 1x1 đỏ — đủ để test đóng dấu/ảnh→PDF. */
 const TINY_PNG = Uint8Array.from(
   atob(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -25,8 +37,16 @@ const TINY_PNG = Uint8Array.from(
   (c) => c.charCodeAt(0),
 )
 
+/** Trang có tham chiếu ảnh (XObject) không — để kiểm đóng dấu đúng trang. */
+function pageHasImage(doc: PDFDocument, pageIndex: number): boolean {
+  const res = doc.getPage(pageIndex).node.Resources()
+  if (!res) return false
+  const xobj = res.lookup(PDFName.of("XObject"))
+  return xobj instanceof PDFDict && xobj.keys().length > 0
+}
+
 describe("parsePageRanges", () => {
-  it("để trống thì tách từng trang", () => {
+  it("để trống → tách từng trang", () => {
     expect(parsePageRanges("", 3)).toEqual([[0], [1], [2]])
   })
 
@@ -34,38 +54,96 @@ describe("parsePageRanges", () => {
     expect(parsePageRanges("1-3, 5", 10)).toEqual([[0, 1, 2], [4]])
   })
 
-  it("báo lỗi khi vượt số trang hoặc sai cú pháp", () => {
+  it("cho phép trùng lặp (mỗi khoảng là một file)", () => {
+    expect(parsePageRanges("1, 1", 3)).toEqual([[0], [0]])
+  })
+
+  it("báo lỗi khi vượt số trang, sai cú pháp, hoặc đảo ngược", () => {
     expect(() => parsePageRanges("1-99", 5)).toThrow(/ngoài số trang/)
     expect(() => parsePageRanges("abc", 5)).toThrow(/Không hiểu/)
+    expect(() => parsePageRanges("0", 5)).toThrow(/ngoài số trang/)
     expect(() => parsePageRanges("4-2", 5)).toThrow(/lớn hơn/)
   })
 })
 
-describe("thao tác pdf-lib", () => {
-  it("mergePdfs ghép đủ trang theo thứ tự", async () => {
-    const merged = await mergePdfs([await makePdf(2), await makePdf(3)])
-    const doc = await PDFDocument.load(merged)
-    expect(doc.getPageCount()).toBe(5)
+describe("mergePdfs", () => {
+  it("ghép đúng thứ tự các trang của từng file", async () => {
+    const a = await makeSizedPdf([110, 111])
+    const b = await makeSizedPdf([200, 201, 202])
+    const merged = await mergePdfs([a, b])
+    expect(await pageWidths(merged)).toEqual([110, 111, 200, 201, 202])
   })
 
-  it("splitPdf tách theo nhóm", async () => {
-    const parts = await splitPdf(await makePdf(4), [[0, 1], [3]])
+  it("từ chối dữ liệu không phải PDF hợp lệ", async () => {
+    await expect(mergePdfs([Uint8Array.from([1, 2, 3, 4, 5])])).rejects.toThrow()
+  })
+})
+
+describe("splitPdf", () => {
+  it("tách đúng các trang theo từng nhóm", async () => {
+    const src = await makeSizedPdf([110, 111, 112, 113])
+    const parts = await splitPdf(src, [[0, 1], [3]])
     expect(parts).toHaveLength(2)
-    expect((await PDFDocument.load(parts[0])).getPageCount()).toBe(2)
-    expect((await PDFDocument.load(parts[1])).getPageCount()).toBe(1)
+    expect(await pageWidths(parts[0])).toEqual([110, 111])
+    expect(await pageWidths(parts[1])).toEqual([113])
   })
+})
 
-  it("reorganizePdf đảo thứ tự, bỏ trang và xoay", async () => {
-    const result = await reorganizePdf(await makePdf(3), [
+describe("reorganizePdf", () => {
+  it("đổi thứ tự, xóa trang bị bỏ và xoay đúng trang", async () => {
+    const src = await makeSizedPdf([110, 111, 112])
+    const result = await reorganizePdf(src, [
       { sourceIndex: 2, extraRotation: 90 },
       { sourceIndex: 0, extraRotation: 0 },
     ])
     const doc = await PDFDocument.load(result)
-    expect(doc.getPageCount()).toBe(2)
+    // Trang 111 (index 1) bị bỏ; thứ tự mới là [112, 110].
+    expect(doc.getPages().map((p) => Math.round(p.getWidth()))).toEqual([112, 110])
     expect(doc.getPage(0).getRotation().angle).toBe(90)
+    expect(doc.getPage(1).getRotation().angle).toBe(0)
   })
 
-  it("imagesToPdf tạo mỗi ảnh một trang A4", async () => {
+  it("báo lỗi khi không giữ trang nào", async () => {
+    const src = await makeSizedPdf([110])
+    await expect(reorganizePdf(src, [])).rejects.toThrow(/ít nhất một trang/)
+  })
+})
+
+describe("stampImage", () => {
+  it("chỉ đóng ảnh lên trang được chọn", async () => {
+    const src = await makeSizedPdf([110, 111, 112])
+    const result = await stampImage(src, TINY_PNG, {
+      centerXRatio: 0.5,
+      centerYRatio: 0.5,
+      widthRatio: 0.3,
+      pageIndices: [1],
+    })
+    const doc = await PDFDocument.load(result)
+    expect(doc.getPageCount()).toBe(3)
+    expect(pageHasImage(doc, 0)).toBe(false)
+    expect(pageHasImage(doc, 1)).toBe(true)
+    expect(pageHasImage(doc, 2)).toBe(false)
+  })
+})
+
+describe("addPageNumbers", () => {
+  it("thực sự chèn nội dung số trang đọc lại được", async () => {
+    const src = await makeSizedPdf([300, 300])
+    const result = await addPageNumbers(src, {
+      position: "bottom-center",
+      format: "n-of-total",
+      startAt: 1,
+      fontSize: 11,
+    })
+    const pages = await loadPagesFromPdfBytes(result)
+    const textOf = (i: number) => pages[i].items.map((it) => it.text).join(" ")
+    expect(textOf(0)).toContain("1/2")
+    expect(textOf(1)).toContain("2/2")
+  })
+})
+
+describe("imagesToPdf", () => {
+  it("mỗi ảnh một trang, khổ A4", async () => {
     const result = await imagesToPdf(
       [
         { bytes: TINY_PNG, type: "image/png" },
@@ -78,24 +156,10 @@ describe("thao tác pdf-lib", () => {
     expect(Math.round(doc.getPage(0).getWidth())).toBe(595)
   })
 
-  it("stampImage chỉ đóng lên trang được chọn", async () => {
-    const result = await stampImage(await makePdf(3), TINY_PNG, {
-      centerXRatio: 0.5,
-      centerYRatio: 0.5,
-      widthRatio: 0.3,
-      pageIndices: [1],
-    })
+  it("khổ 'fit' → trang đúng bằng kích thước ảnh", async () => {
+    const result = await imagesToPdf([{ bytes: TINY_PNG, type: "image/png" }], { pageSize: "fit" })
     const doc = await PDFDocument.load(result)
-    expect(doc.getPageCount()).toBe(3)
-  })
-
-  it("addPageNumbers giữ nguyên số trang và chạy đủ các kiểu", async () => {
-    const result = await addPageNumbers(await makePdf(2), {
-      position: "bottom-center",
-      format: "trang-n-of-total",
-      startAt: 1,
-      fontSize: 11,
-    })
-    expect((await PDFDocument.load(result)).getPageCount()).toBe(2)
+    expect(Math.round(doc.getPage(0).getWidth())).toBe(1)
+    expect(Math.round(doc.getPage(0).getHeight())).toBe(1)
   })
 })

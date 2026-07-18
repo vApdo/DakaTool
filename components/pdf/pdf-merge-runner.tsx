@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Combine } from "lucide-react"
 import type { Tool } from "@/lib/types"
 import { downloadBytes } from "@/lib/download"
+import { formatBytes } from "@/lib/pdf/limits"
 import { FileDropZone } from "./file-drop-zone"
 import { SortableFileList } from "./sortable-file-list"
 import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
@@ -34,6 +35,7 @@ export function PdfMergeRunner({ tool }: { tool: Tool }) {
       <FileDropZone
         accept="application/pdf,.pdf"
         multiple
+        existingFiles={files}
         title="Kéo thả các file PDF cần ghép vào đây"
         onFiles={(added) => {
           setFiles((prev) => [...prev, ...added])
@@ -43,7 +45,9 @@ export function PdfMergeRunner({ tool }: { tool: Tool }) {
       {files.length > 0 && (
         <>
           <div>
-            <p className="field-label mb-2">Thứ tự ghép ({files.length} file)</p>
+            <p className="field-label mb-2">
+              Thứ tự ghép ({files.length} file · {formatBytes(files.reduce((s, f) => s + f.size, 0))})
+            </p>
             <SortableFileList files={files} onChange={setFiles} />
           </div>
           <div className="flex flex-wrap items-center gap-3">

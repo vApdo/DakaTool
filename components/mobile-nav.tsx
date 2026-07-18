@@ -3,14 +3,13 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Wrench, PlusCircle, LayoutTemplate, History, Download, Bitcoin } from "lucide-react"
+import { LayoutDashboard, Wrench, PlusCircle, LayoutTemplate, History, Download } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tools", label: "Tool", icon: Wrench },
   { href: "/tools/new", label: "Tạo mới", icon: PlusCircle },
-  { href: "/crypto", label: "Crypto", icon: Bitcoin },
   { href: "/templates", label: "Template", icon: LayoutTemplate },
   { href: "/history", label: "Lịch sử", icon: History },
   { href: "/export", label: "Export", icon: Download },

@@ -1,7 +1,15 @@
 "use client"
 
 import type { PageText, PositionedItem } from "./types"
-import { registerOcrProvider, type OcrPageImage, type OcrProvider } from "./ocr-provider"
+import { registerOcrProvider, type OcrProvider, type OcrRequest } from "./ocr-provider"
+
+/** Lỗi hủy OCR — runner nhận biết để hiển thị "đã hủy" thay vì "lỗi". */
+export class OcrAbortError extends Error {
+  constructor() {
+    super("OCR đã bị hủy")
+    this.name = "AbortError"
+  }
+}
 
 /**
  * OCR provider chạy trong trình duyệt bằng Tesseract.js.
@@ -17,8 +25,13 @@ export const tesseractOcrProvider: OcrProvider = {
   name: "Tesseract.js (trong trình duyệt)",
   runsInBrowser: true,
 
-  async recognize(pages: OcrPageImage[], onProgress?: (progress: number) => void): Promise<PageText[]> {
+  async recognize(request: OcrRequest, onProgress?: (progress: number) => void): Promise<PageText[]> {
+    const { pageCount, scale, renderPage, signal } = request
     const { createWorker } = await import("tesseract.js")
+
+    const throwIfAborted = () => {
+      if (signal?.aborted) throw new OcrAbortError()
+    }
 
     let currentPage = 0
     const worker = await createWorker("eng", 1, {
@@ -27,7 +40,7 @@ export const tesseractOcrProvider: OcrProvider = {
       langPath: "/ocr/lang",
       logger: (m: { status: string; progress: number }) => {
         if (m.status === "recognizing text" && onProgress) {
-          onProgress((currentPage + m.progress) / pages.length)
+          onProgress((currentPage + m.progress) / pageCount)
         }
       },
     })
@@ -37,23 +50,27 @@ export const tesseractOcrProvider: OcrProvider = {
 
     try {
       const result: PageText[] = []
-      for (const page of pages) {
-        let best = await recognizeImage(worker, page.blob, page.heightPx, page.scale)
+      for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+        throwIfAborted()
+        // Render + OCR TỪNG trang rồi bỏ ngay ảnh — chỉ một trang trong RAM mỗi lúc.
+        const rendered = await renderPage(pageNumber, 0)
+        let best = await recognizeImage(worker, rendered.blob, rendered.heightPx, scale)
 
         // Bản scan hay bị lộn ngược (180°) hoặc nằm ngang (90/270°):
         // thử lại các góc xoay và giữ kết quả có confidence cao nhất.
-        if (best.confidence < LOW_CONFIDENCE && page.render) {
+        if (best.confidence < LOW_CONFIDENCE) {
           for (const rotation of [180, 90, 270]) {
-            const rotated = await page.render(rotation)
-            const attempt = await recognizeImage(worker, rotated.blob, rotated.heightPx, page.scale)
+            throwIfAborted()
+            const rotated = await renderPage(pageNumber, rotation)
+            const attempt = await recognizeImage(worker, rotated.blob, rotated.heightPx, scale)
             if (attempt.confidence > best.confidence) best = attempt
             if (best.confidence >= LOW_CONFIDENCE) break
           }
         }
 
-        result.push({ pageNumber: page.pageNumber, items: best.items })
+        result.push({ pageNumber, items: best.items })
         currentPage++
-        onProgress?.(currentPage / pages.length)
+        onProgress?.(currentPage / pageCount)
       }
       return result
     } finally {

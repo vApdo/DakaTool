@@ -2,8 +2,7 @@
 
 import { useRef, useState } from "react"
 import { FileUp } from "lucide-react"
-
-const MAX_SIZE_MB = 20
+import { PDF_LIMITS, formatBytes, validatePdfFiles } from "@/lib/pdf/limits"
 
 export function PdfUpload({ onFile }: { onFile: (file: File) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -13,13 +12,9 @@ export function PdfUpload({ onFile }: { onFile: (file: File) => void }) {
   function handleFile(file: File | undefined) {
     setError(null)
     if (!file) return
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
-    if (!isPdf) {
-      setError("Chỉ chấp nhận file PDF.")
-      return
-    }
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError(`File vượt quá ${MAX_SIZE_MB}MB. Hãy chọn file nhỏ hơn.`)
+    const check = validatePdfFiles([file], { accept: "application/pdf,.pdf", multiple: false })
+    if (!check.ok) {
+      setError(check.error ?? "File không hợp lệ.")
       return
     }
     onFile(file)
@@ -57,7 +52,8 @@ export function PdfUpload({ onFile }: { onFile: (file: File) => void }) {
         <div>
           <p className="font-medium text-black dark:text-white">Kéo thả file PDF vào đây</p>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            hoặc bấm để chọn file · tối đa {MAX_SIZE_MB}MB · xử lý ngay trên máy bạn, không tải lên đâu cả
+            hoặc bấm để chọn file · tối đa {formatBytes(PDF_LIMITS.maxSingleBytes)} · xử lý ngay trên máy bạn, không
+            tải lên đâu cả
           </p>
         </div>
       </div>

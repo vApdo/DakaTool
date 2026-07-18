@@ -1,45 +1,89 @@
 # DakaTool
 
-Nền tảng nội bộ để tạo, quản lý và chạy các tool/quy trình tự động hóa công việc.
+Nền tảng nội bộ để tạo, quản lý và chạy các tool xử lý công việc — hiện tập trung vào **xử lý PDF/chứng từ ngay trong trình duyệt**.
 
-## Chạy dự án
+## Yêu cầu & lệnh
+
+Khuyến nghị **Node.js 20 LTS** (CI dùng Node 20).
 
 ```bash
-npm install
-npm run dev      # http://localhost:3000
-npm run build    # build production
-npm test         # unit test (vitest) cho logic trích xuất PDF
+npm install         # cài phụ thuộc
+npm run dev         # chạy dev tại http://localhost:3000
+npm test            # unit test (vitest)
+npx tsc --noEmit    # kiểm tra kiểu TypeScript
+npm run build       # build production
 ```
 
-## Các trang (MVP 0.1)
+> `npm run lint` **chưa** được đưa vào CI: dự án chưa cấu hình ESLint, chạy `next lint`
+> sẽ hỏi cấu hình tương tác. Khi cần bật lint, thêm `eslint` + `eslint-config-next`
+> rồi cập nhật `.github/workflows/ci.yml` trong một thay đổi riêng.
 
-| Đường dẫn | Nội dung |
+## Nguyên tắc xử lý dữ liệu
+
+- **Toàn bộ file PDF/ảnh xử lý client-side** — không tự động upload lên server, không lưu file.
+- Không có backend, database hay authentication ở giai đoạn hiện tại (dữ liệu tool là mẫu tĩnh
+  trong `lib/data.ts`; lịch sử chạy lưu ở `localStorage` của trình duyệt).
+- Không commit chứng từ thật của khách hàng vào repo (`test/fixtures/*.pdf` bị `.gitignore`).
+
+### Giới hạn tài nguyên (client-side)
+
+Đặt tập trung ở `lib/pdf/limits.ts`, dùng chung cho các tool PDF:
+
+- Tối đa **20 file** mỗi lần; **20MB/file**.
+- Tổng dung lượng tối đa **100MB** (máy tính) / **40MB** (điện thoại hoặc thiết bị ≤4GB RAM).
+- OCR chỉ xử lý tối đa **20 trang** đầu để tránh quá tải bộ nhớ.
+- Kiểm tra định dạng theo **cả MIME lẫn phần mở rộng** file.
+
+### OCR trên điện thoại
+
+OCR (Tesseract.js) chạy trong trình duyệt, rất tốn RAM/CPU. Trên điện thoại nên dùng bản scan
+ít trang, ảnh rõ nét. Luồng OCR xử lý **tuần tự từng trang** và giải phóng ảnh ngay sau mỗi
+trang để hạn chế hết RAM; có nút **Hủy OCR** giữa chừng.
+
+## Tool
+
+### Chạy thật (client-side)
+
+| Tool | Chức năng |
 |---|---|
-| `/` | Homepage giới thiệu DakaTool |
-| `/dashboard` | Tổng quan: thống kê, lần chạy gần đây, tool dùng nhiều |
-| `/tools` | Danh sách tool, tìm kiếm + lọc theo nhóm |
-| `/tools/[id]` | Chi tiết tool + form chạy (mô phỏng tiến trình) |
-| `/tools/new` | Tạo tool mới (form builder, chưa lưu thật) |
-| `/templates` | Thư viện template quy trình dựng sẵn |
-| `/history` | Lịch sử các lần chạy |
-| `/export` | Export kết quả (placeholder) |
+| Trích xuất dữ liệu HBL từ PDF | Đọc text layer bằng pdfjs, trích 23 trường; PDF scan thì OCR bằng Tesseract.js. |
+| Ghép PDF | Gộp nhiều PDF theo thứ tự kéo-thả. |
+| Tách trang PDF | Tách theo khoảng trang hoặc từng trang (nhiều file → gói ZIP). |
+| Sắp xếp trang PDF | Xoay / xóa / đổi thứ tự trang qua ảnh thu nhỏ. |
+| Ảnh sang PDF | Ghép ảnh JPG/PNG thành PDF, chọn khổ A4/theo ảnh. |
+| PDF sang ảnh | Xuất từng trang ra PNG/JPG. |
+| Đóng dấu / Watermark PDF | Chèn chữ mờ (hỗ trợ tiếng Việt qua canvas). |
+| Đánh số trang PDF | Nhiều vị trí và kiểu hiển thị. |
+| Ký tên lên PDF | Vẽ chữ ký hoặc dùng ảnh chữ ký, chọn trang/vị trí. |
 
-## Tool thật đầu tiên: Trích xuất dữ liệu HBL từ PDF
+### Đang triển khai (bản mô phỏng)
 
-`/tools/hbl-pdf-extractor` — tool chạy thật (không mô phỏng): tải PDF House Bill of Lading lên, hệ thống đọc text layer bằng pdfjs-dist ngay trong trình duyệt (không upload đi đâu), trích xuất 23 trường nghiệp vụ, cho sửa từng trường, sao chép và xuất JSON.
-
-PDF scan (không có text layer) được nhận dạng bằng **OCR Tesseract.js chạy trong trình duyệt** — bấm "Nhận dạng bằng OCR" khi được gợi ý. Asset OCR (worker, WASM, model tiếng Anh, ~24MB) tự host tại `public/ocr/`; bộ giải mã ảnh JBIG2/JPEG2000 của pdf.js tại `public/pdfjs/` — không dùng CDN ngoài, ảnh chứng từ không rời khỏi máy. Bản scan bị lộn ngược/nghiêng được tự phát hiện qua confidence và thử lại ở góc 180/90/270°. Provider khác (Document AI, Textract...) có thể cắm thêm qua `lib/pdf/ocr-provider.ts`.
-
-- Logic parsing tách khỏi UI: `lib/pdf/` (extract-text, classify-pdf, extract-hbl, normalize-fields).
-- Runner riêng cho từng tool qua registry: `components/tool-runner-registry.tsx` — tool chưa có runner thật dùng ToolRunner mô phỏng.
-- Unit test + fixture PDF thật: `test/pdf/`, chạy bằng `npm test`.
+Các tool sau hiển thị nhãn **"Đang triển khai"**, dùng `ToolRunner` mô phỏng tiến trình,
+**chưa thực thi thật** và không ghi vào lịch sử: Đổi tên file hàng loạt, Gộp CSV thành Excel,
+Gửi email báo cáo, Theo dõi giá sản phẩm, Nén ảnh hàng loạt, Đồng bộ Google Sheet, Tổng hợp báo cáo tuần.
 
 ## Kiến trúc
 
-- **Next.js 14 App Router + TypeScript + Tailwind CSS**
-- Chưa có database — toàn bộ dữ liệu mẫu nằm ở `lib/data.ts`, types ở `lib/types.ts`. Khi kết nối backend, chỉ cần thay nguồn dữ liệu ở đây.
+- **Next.js 14 App Router + React 18 + TypeScript + Tailwind CSS**, deploy trên Vercel.
+- Logic PDF tách khỏi UI ở `lib/pdf/` (`extract-text`, `classify-pdf`, `extract-hbl`,
+  `normalize-fields`, `edit`, `limits`, `ocr-provider`, `ocr-tesseract`).
+- Mỗi tool có runner riêng qua registry `components/tool-runner-registry.tsx`; tool chưa có
+  runner thật dùng `ToolRunner` mô phỏng.
+- Asset OCR tự host ở `public/ocr/`, bộ giải mã ảnh pdf.js ở `public/pdfjs/` — không dùng CDN ngoài.
 - Khu vực app dùng route group `app/(app)/` với sidebar chung; homepage nằm ngoài.
-- Design system kế thừa từ giao diện gốc: font Outfit, màu chủ đạo `#7A7FEE`, card `rounded-3xl`, hỗ trợ light/dark (next-themes). Token màu và class dùng chung (`.card`, `.btn-primary`, `.field-input`...) ở `app/globals.css`.
+
+## Test & CI
+
+- Unit test ở `test/pdf/`. Fixture PDF được **dựng trong test bằng pdf-lib** (`test/pdf/fixtures.ts`,
+  dữ liệu giả lập, không phải chứng từ thật) nên `npm test` chạy được ngay trên repo clone sạch.
+- GitHub Actions (`.github/workflows/ci.yml`) chạy khi push nhánh phụ hoặc PR vào `main`:
+  `npm ci` → `tsc --noEmit` → `npm test` → `npm run build`.
+
+## Quy trình đưa code lên
+
+1. Làm việc trên **nhánh phụ** (không push trực tiếp vào `main`).
+2. Mở Pull Request → Vercel tạo **Preview** để kiểm tra.
+3. Chỉ **merge vào `main` khi được người dùng duyệt rõ ràng**.
 
 ## Định hướng
 

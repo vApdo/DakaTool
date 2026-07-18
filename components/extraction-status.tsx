@@ -1,6 +1,7 @@
 "use client"
 
 import { CheckCircle2, FileWarning, Loader2, ScanLine, XCircle } from "lucide-react"
+import { PDF_LIMITS } from "@/lib/pdf/limits"
 
 export type ExtractionState =
   | { step: "idle" }
@@ -74,6 +75,9 @@ export function ExtractionStatus({ state }: { state: ExtractionState }) {
             <p className="mt-1 text-amber-700/80 dark:text-amber-300/80">
               {state.pageCount} trang không có lớp văn bản đọc được. Bấm &quot;Nhận dạng bằng OCR&quot; để đọc chữ từ
               ảnh ngay trong trình duyệt — file không được gửi đi đâu.
+              {state.pageCount > PDF_LIMITS.ocrMaxPages
+                ? ` OCR chỉ xử lý ${PDF_LIMITS.ocrMaxPages} trang đầu để tránh quá tải bộ nhớ trên điện thoại.`
+                : ""}
             </p>
           </div>
         </div>

@@ -2,8 +2,7 @@
 
 import { useRef, useState } from "react"
 import { FileUp } from "lucide-react"
-
-const MAX_SIZE_MB = 20
+import { PDF_LIMITS, formatBytes, validatePdfFiles } from "@/lib/pdf/limits"
 
 interface FileDropZoneProps {
   /** Danh sách MIME/đuôi file chấp nhận, vd "application/pdf,.pdf". */
@@ -12,41 +11,35 @@ interface FileDropZoneProps {
   title: string
   subtitle?: string
   onFiles: (files: File[]) => void
+  /** File đã chọn từ trước (khi tool tích lũy nhiều lần thả) — để tính tổng đúng. */
+  existingFiles?: File[]
 }
 
-/** Ô kéo thả file dùng chung cho các tool PDF — lọc theo định dạng và giới hạn dung lượng. */
-export function FileDropZone({ accept, multiple = false, title, subtitle, onFiles }: FileDropZoneProps) {
+/** Ô kéo thả file dùng chung cho các tool PDF — lọc định dạng + giới hạn tài nguyên. */
+export function FileDropZone({
+  accept,
+  multiple = false,
+  title,
+  subtitle,
+  onFiles,
+  existingFiles = [],
+}: FileDropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const acceptList = accept.split(",").map((a) => a.trim().toLowerCase())
-
-  function matches(file: File): boolean {
-    return acceptList.some((a) =>
-      a.startsWith(".")
-        ? file.name.toLowerCase().endsWith(a)
-        : a.endsWith("/*")
-          ? file.type.startsWith(a.slice(0, -1))
-          : file.type === a,
-    )
-  }
-
   function handleFiles(list: FileList | null) {
     setError(null)
     if (!list || list.length === 0) return
-    const files = Array.from(list)
-    const wrong = files.find((f) => !matches(f))
-    if (wrong) {
-      setError(`File "${wrong.name}" không đúng định dạng cho tool này.`)
+    const batch = Array.from(list)
+    // Kiểm tra trên TOÀN BỘ tập file (đã chọn + mới thả) để chặn vượt tổng dung lượng/số file.
+    const combined = multiple ? [...existingFiles, ...batch] : batch
+    const check = validatePdfFiles(combined, { accept, multiple })
+    if (!check.ok) {
+      setError(check.error ?? "File không hợp lệ.")
       return
     }
-    const tooBig = files.find((f) => f.size > MAX_SIZE_MB * 1024 * 1024)
-    if (tooBig) {
-      setError(`File "${tooBig.name}" vượt quá ${MAX_SIZE_MB}MB. Hãy chọn file nhỏ hơn.`)
-      return
-    }
-    onFiles(multiple ? files : files.slice(0, 1))
+    onFiles(multiple ? batch : batch.slice(0, 1))
   }
 
   return (
@@ -81,8 +74,8 @@ export function FileDropZone({ accept, multiple = false, title, subtitle, onFile
         <div>
           <p className="font-medium text-black dark:text-white">{title}</p>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {subtitle ?? "hoặc bấm để chọn file"} · tối đa {MAX_SIZE_MB}MB · xử lý ngay trên máy bạn, không tải
-            lên đâu cả
+            {subtitle ?? "hoặc bấm để chọn file"} · tối đa {PDF_LIMITS.maxFiles} file ·{" "}
+            {formatBytes(PDF_LIMITS.maxSingleBytes)}/file · xử lý ngay trên máy bạn, không tải lên đâu cả
           </p>
         </div>
       </div>
