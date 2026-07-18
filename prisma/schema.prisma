@@ -1,0 +1,135 @@
+// Prisma schema cho tính năng Auto Subtitle của DakaTool.
+// Chỉ chứa các entity phục vụ Auto Subtitle; các tool PDF client-side không dùng DB.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectStatus {
+  UPLOADING
+  UPLOADED
+  QUEUED
+  EXTRACTING_AUDIO
+  TRANSCRIBING
+  FORMATTING
+  READY
+  RENDERING
+  COMPLETED
+  FAILED
+}
+
+enum JobType {
+  TRANSCRIBE
+  RENDER_VIDEO
+  GENERATE_EXPORT
+}
+
+enum JobStatus {
+  QUEUED
+  ACTIVE
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ExportType {
+  SRT
+  VTT
+  ASS
+  BURNED_MP4
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model SubtitleProject {
+  id                String        @id @default(cuid())
+  ownerId           String?
+  title             String
+  sourceFilename    String
+  sourceMimeType    String
+  sourceSizeBytes   BigInt
+  sourceStorageKey  String
+  durationMs        Int?
+  detectedLanguage  String?
+  requestedLanguage String
+  status            ProjectStatus @default(UPLOADING)
+  progress          Int           @default(0)
+  errorCode         String?
+  errorMessage      String?
+  subtitleStyle     Json
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  completedAt       DateTime?
+
+  segments SubtitleSegment[]
+  jobs     SubtitleJob[]
+  exports  SubtitleExport[]
+
+  @@index([createdAt])
+}
+
+model SubtitleSegment {
+  id        String   @id @default(cuid())
+  projectId String
+  order     Int
+  startMs   Int
+  endMs     Int
+  text      String
+  speaker   String?
+  words     Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project SubtitleProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, order])
+  @@index([projectId])
+}
+
+model SubtitleJob {
+  id           String    @id @default(cuid())
+  projectId    String
+  bullJobId    String?
+  type         JobType
+  status       JobStatus @default(QUEUED)
+  progress     Int       @default(0)
+  attempts     Int       @default(0)
+  errorCode    String?
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  project SubtitleProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model SubtitleExport {
+  id           String       @id @default(cuid())
+  projectId    String
+  type         ExportType
+  status       ExportStatus @default(PENDING)
+  storageKey   String?
+  filename     String
+  mimeType     String
+  sizeBytes    BigInt?
+  errorMessage String?
+  createdAt    DateTime     @default(now())
+  completedAt  DateTime?
+
+  project SubtitleProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}

@@ -33,3 +33,11 @@ next-env.d.ts
 
 # Chung tu that dung de test cuc bo - khong dua len repo
 test/fixtures/*.pdf
+
+# Auto Subtitle: storage cuc bo, cache Python, model whisper
+/data/
+__pycache__/
+*.pyc
+.pytest_cache/
+/models/
+services/subtitle-engine/*.egg-info/
