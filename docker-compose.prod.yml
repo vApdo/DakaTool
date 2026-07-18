@@ -1,0 +1,82 @@
+# Deploy production Auto Subtitle trên một VPS bằng Docker Compose.
+# Bốn service: app (Next UI+API), worker (BullMQ), postgres, redis.
+# app và worker dùng CHUNG image (build .) và CHUNG volume storage để trao đổi file.
+#
+# Cách dùng:
+#   cp .env.example .env      # điền giá trị thật (đặc biệt POSTGRES_PASSWORD)
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Đặt sau reverse proxy (Caddy/Nginx) để có HTTPS; app lắng nghe cổng 3000.
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD chưa đặt trong .env}
+      POSTGRES_DB: ${POSTGRES_DB:-dakatool}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-dakatool}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    command: ["app"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dakatool}?schema=public
+      REDIS_URL: redis://redis:6379
+      STORAGE_DRIVER: local
+      LOCAL_STORAGE_ROOT: /data
+    ports:
+      - "3000:3000"
+    volumes:
+      - storage:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: ["worker"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dakatool}?schema=public
+      REDIS_URL: redis://redis:6379
+      STORAGE_DRIVER: local
+      LOCAL_STORAGE_ROOT: /data
+    volumes:
+      - storage:/data          # chung với app: app ghi video upload, worker đọc
+      - models:/models         # cache model whisper (không tải lại mỗi lần)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  storage:
+  models:
