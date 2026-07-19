@@ -255,7 +255,13 @@ def transcribe_openai(
     for i, (s, e) in enumerate(pieces):
         chunk = _encode_region(audio_path, chunk_dir, i, s, e)
         body = _post_openai(chunk, key, model, language, want_ts)
-        all_segments.extend(_segments_from_response(body, s, e - s))
+        got = _segments_from_response(body, s, e - s)
+        raw_n = len(body.get("segments", []) or []) or (1 if body.get("text") else 0)
+        preview = (got[0].text[:60] + "…") if got else "(trống)"
+        progress.log(
+            f"OpenAI đoạn {i + 1}/{len(pieces)} [{s}-{e}ms]: trả {raw_n} câu, giữ {len(got)} — {preview}"
+        )
+        all_segments.extend(got)
         progress.progress("transcribing", min(0.99, (i + 1) / len(pieces)))
 
     # Đánh lại order theo thời gian, phòng khi đoạn trả lệch.
