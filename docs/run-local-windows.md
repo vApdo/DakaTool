@@ -18,6 +18,16 @@ Khởi động lại máy khi được yêu cầu, mở app "Ubuntu", đặt use
 
 > Nếu lỗi ảo hoá: vào BIOS bật **Intel VT-x** (mainboard X99 đều có, mục CPU Configuration).
 
+## Cách nhanh nhất — một lệnh duy nhất
+
+Nếu đã xong Bước 1 (WSL2 + Ubuntu), mở cửa sổ Ubuntu và dán:
+```bash
+curl -fsSL https://raw.githubusercontent.com/vApdo/DakaTool/feat/auto-subtitle/scripts/setup-local.sh | bash
+```
+Script tự làm toàn bộ Bước 2–3 (cài Docker, tải code, tạo `.env`, build, khởi động)
+và in địa chỉ truy cập khi xong. Chạy lại lệnh này bất cứ lúc nào để cập nhật + bật lại.
+Các mục dưới đây chỉ cần khi muốn làm thủ công từng bước.
+
 ## Bước 2 — Cài Docker bên trong Ubuntu (một lần)
 Trong cửa sổ Ubuntu:
 ```bash
