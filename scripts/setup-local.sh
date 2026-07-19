@@ -44,11 +44,14 @@ cd "$DIR"
 msg "Bước 3/5 — Tạo cấu hình .env"
 if [ ! -f .env ]; then
   cp .env.example .env
-  PW="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)"
-  sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$PW/" .env
-  echo "Đã tạo .env với mật khẩu Postgres ngẫu nhiên (chỉ dùng nội bộ máy này)."
+fi
+# Đặt mật khẩu Postgres nội bộ nếu vẫn còn giá trị mẫu (tránh pipe dễ vỡ dưới pipefail).
+if grep -q "^POSTGRES_PASSWORD=doi-mat-khau-nay" .env 2>/dev/null; then
+  PW="dk_$(date +%s)_${RANDOM}${RANDOM}"
+  sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$PW|" .env
+  echo "Đã đặt mật khẩu Postgres nội bộ (chỉ dùng trong máy này)."
 else
-  echo ".env đã có — giữ nguyên."
+  echo ".env đã cấu hình — giữ nguyên."
 fi
 
 msg "Bước 4/5 — Build & khởi động (lần đầu mất 5–10 phút, cứ để chạy)"
