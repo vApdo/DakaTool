@@ -16,6 +16,8 @@ export interface RunEngineOptions {
   engineDir: string
   input: string
   outputDir: string
+  /** local = faster-whisper trong máy; openai = API OpenAI. */
+  provider: "local" | "openai"
   language: string
   model: string
   device: string
@@ -23,6 +25,8 @@ export interface RunEngineOptions {
   beamSize: number
   vadEnabled: boolean
   timeoutMs: number
+  /** API key OpenAI — truyền qua env (không đưa vào argv để không lộ trong process list). */
+  apiKey?: string
   onProgress?: (event: EngineProgressEvent) => void
 }
 
@@ -66,6 +70,8 @@ export function runEngine(opts: RunEngineOptions): Promise<RunEngineResult> {
     opts.input,
     "--output-dir",
     opts.outputDir,
+    "--provider",
+    opts.provider,
     "--language",
     opts.language,
     "--model",
@@ -78,7 +84,9 @@ export function runEngine(opts: RunEngineOptions): Promise<RunEngineResult> {
     String(opts.beamSize),
   ]
   if (!opts.vadEnabled) args.push("--no-vad")
-  return runSpawn(opts.pythonBin, args, opts.engineDir, opts.timeoutMs, opts.onProgress)
+  // API key đi qua env, KHÔNG qua argv.
+  const extraEnv = opts.apiKey ? { OPENAI_API_KEY: opts.apiKey } : undefined
+  return runSpawn(opts.pythonBin, args, opts.engineDir, opts.timeoutMs, opts.onProgress, extraEnv)
 }
 
 function runSpawn(
@@ -87,12 +95,13 @@ function runSpawn(
   engineDir: string,
   timeoutMs: number,
   onProgress?: (event: EngineProgressEvent) => void,
+  extraEnv?: Record<string, string>,
 ): Promise<RunEngineResult> {
   return new Promise<RunEngineResult>((resolve, reject) => {
     // spawn: mảng args cố định, cwd = engineDir, KHÔNG shell.
     const child = spawn(pythonBin, args, {
       cwd: engineDir,
-      env: { ...process.env, PYTHONUNBUFFERED: "1" },
+      env: { ...process.env, PYTHONUNBUFFERED: "1", ...extraEnv },
       shell: false,
     })
 

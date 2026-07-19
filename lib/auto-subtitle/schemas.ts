@@ -71,6 +71,15 @@ export const bulkUpdateSegmentsSchema = z.object({
 })
 export type BulkUpdateSegmentsInput = z.infer<typeof bulkUpdateSegmentsSchema>
 
+/** Cập nhật cấu hình nhận dạng (provider/model/API key). */
+export const updateSettingsSchema = z.object({
+  provider: z.enum(["local", "openai"]),
+  openaiModel: z.enum(["whisper-1", "gpt-4o-transcribe"]),
+  // undefined = giữ key cũ; "" = xoá key; chuỗi khác = đặt key mới.
+  openaiApiKey: z.string().max(300).optional(),
+})
+export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>
+
 export const createExportSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("SRT") }),
   z.object({ type: z.literal("VTT") }),

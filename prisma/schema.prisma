@@ -51,6 +51,14 @@ enum ExportStatus {
   FAILED
 }
 
+/// Cấu hình toàn cục dạng key-value (provider nhận dạng, model, API key AI…).
+/// Chỉ đọc/ghi phía server; API key KHÔNG bao giờ trả về client.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 model SubtitleProject {
   id                String        @id @default(cuid())
   ownerId           String?

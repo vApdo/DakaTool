@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Captions } from "lucide-react"
+import { AiSettings } from "@/components/auto-subtitle/ai-settings"
 import { VideoUpload } from "@/components/auto-subtitle/video-upload"
 
 export default function AutoSubtitlePage() {
@@ -30,8 +31,11 @@ export default function AutoSubtitlePage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-xl rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900/40">
-        <VideoUpload onStarted={(projectId) => router.push(`/tools/auto-subtitle/${projectId}`)} />
+      <div className="mx-auto max-w-xl space-y-4">
+        <AiSettings />
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900/40">
+          <VideoUpload onStarted={(projectId) => router.push(`/tools/auto-subtitle/${projectId}`)} />
+        </div>
       </div>
     </div>
   )

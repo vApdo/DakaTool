@@ -18,6 +18,7 @@ import {
   truncateError,
 } from "@/lib/auto-subtitle/constants"
 import { isFinalAttempt, isRetryable } from "@/lib/auto-subtitle/retry"
+import { getTranscribeSettings } from "@/lib/auto-subtitle/settings"
 import * as repo from "@/lib/auto-subtitle/repository"
 import type { EngineResult } from "@/lib/auto-subtitle/types"
 import { buildStorageKey, getStorage } from "@/lib/storage"
@@ -69,13 +70,20 @@ export async function processTranscribe(job: Job<TranscribeJobData>): Promise<vo
 
     await repo.updateProjectProgress(projectId, { status: "EXTRACTING_AUDIO", progress: 2 })
 
+    // Cấu hình provider/model/API key do admin đặt (mặc định local faster-whisper).
+    const settings = await getTranscribeSettings()
+    const model =
+      settings.provider === "openai" ? settings.openaiModel : process.env.WHISPER_MODEL ?? "small"
+
     const result = await runEngine({
       pythonBin: process.env.SUBTITLE_ENGINE_PYTHON ?? "python3",
       engineDir: process.env.SUBTITLE_ENGINE_DIR ?? "./services/subtitle-engine",
       input: sourcePath,
       outputDir,
+      provider: settings.provider,
+      apiKey: settings.provider === "openai" ? settings.openaiApiKey : undefined,
       language: project.requestedLanguage || "auto",
-      model: process.env.WHISPER_MODEL ?? "small",
+      model,
       device: process.env.WHISPER_DEVICE ?? "cpu",
       computeType: process.env.WHISPER_COMPUTE_TYPE ?? "int8",
       beamSize: Number(process.env.WHISPER_BEAM_SIZE ?? 5),

@@ -130,3 +130,28 @@ export async function createExport(
 export function downloadUrl(exportId: string): string {
   return `${BASE}/exports/${exportId}/download`
 }
+
+export interface AiSettingsStatus {
+  provider: "local" | "openai"
+  openaiModel: "whisper-1" | "gpt-4o-transcribe"
+  openaiKeyConfigured: boolean
+  openaiKeyHint: string | null
+}
+
+export async function getSettings(): Promise<AiSettingsStatus> {
+  return jsonOrThrow<AiSettingsStatus>(await fetch(`${BASE}/settings`, { cache: "no-store" }))
+}
+
+export async function updateSettings(input: {
+  provider: "local" | "openai"
+  openaiModel: "whisper-1" | "gpt-4o-transcribe"
+  openaiApiKey?: string
+}): Promise<AiSettingsStatus> {
+  return jsonOrThrow<AiSettingsStatus>(
+    await fetch(`${BASE}/settings`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  )
+}
