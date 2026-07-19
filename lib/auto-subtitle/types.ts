@@ -63,6 +63,7 @@ export interface ProjectDTO {
   durationMs: number | null
   detectedLanguage: string | null
   requestedLanguage: string
+  separateVocals: boolean
   status: ProjectStatusDTO
   progress: number
   errorCode: string | null

@@ -20,7 +20,9 @@ ENV VENV=/opt/venv
 RUN python3 -m venv "$VENV"
 ENV PATH="$VENV/bin:$PATH"
 COPY services/subtitle-engine/requirements.txt ./services/subtitle-engine/requirements.txt
-RUN "$VENV/bin/pip" install --no-cache-dir -r services/subtitle-engine/requirements.txt
+# torch bản CPU (nhẹ hơn nhiều bản CUDA) cho Demucs tách giọng khỏi nhạc.
+RUN "$VENV/bin/pip" install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu \
+    && "$VENV/bin/pip" install --no-cache-dir -r services/subtitle-engine/requirements.txt
 
 # --- Node deps (gồm devDeps: tsx cho worker, prisma, typescript cho build) ---
 COPY package.json package-lock.json ./
@@ -37,6 +39,7 @@ ENV SUBTITLE_ENGINE_PYTHON=/opt/venv/bin/python \
     SUBTITLE_ENGINE_DIR=/app/services/subtitle-engine \
     SUBTITLE_FONTS_DIR=/app/assets/fonts \
     HF_HOME=/models \
+    TORCH_HOME=/models/torch \
     NODE_ENV=production \
     PORT=3000
 

@@ -16,6 +16,13 @@ export async function POST(
 ) {
   try {
     const ownerId = getOwnerId(request)
+    // Body tuỳ chọn: { separateVocals?: boolean } — đặt trước khi enqueue.
+    const body = (await request.json().catch(() => null)) as {
+      separateVocals?: unknown
+    } | null
+    if (body && typeof body.separateVocals === "boolean") {
+      await repo.setSeparateVocals(params.projectId, ownerId, body.separateVocals)
+    }
     const { jobId } = await repo.createTranscribeJobIfNone(params.projectId, ownerId)
     const bullJobId = await enqueueTranscribe({ jobId, projectId: params.projectId })
     await repo.attachBullJobId(jobId, bullJobId)

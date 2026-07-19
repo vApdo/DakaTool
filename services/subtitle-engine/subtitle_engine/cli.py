@@ -52,6 +52,18 @@ def cmd_transcribe(args: argparse.Namespace) -> int:
         audio_path = extract_audio(input_path, output_dir)
         progress.progress("extracting_audio", 0.1)
 
+        if args.separate_vocals:
+            # Tách giọng khỏi nhạc nền trước khi nhận dạng (Demucs, chạy CPU).
+            from .vocal_separator import VocalSeparationError, separate_vocals
+
+            progress.progress("separating_vocals", 0.12)
+            try:
+                audio_path = separate_vocals(audio_path, output_dir)
+            except VocalSeparationError as exc:
+                progress.error(str(exc), exc.code)
+                return 5
+            progress.progress("separating_vocals", 0.3)
+
         if args.provider == "openai":
             # Nhận dạng qua API OpenAI (key lấy từ biến môi trường OPENAI_API_KEY).
             from .openai_transcriber import OpenAITranscriptionError, transcribe_openai
@@ -165,6 +177,8 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--compute-type", default="int8", dest="compute_type")
     t.add_argument("--beam-size", type=int, default=5, dest="beam_size")
     t.add_argument("--no-vad", action="store_true", help="Tắt VAD filter")
+    t.add_argument("--separate-vocals", action="store_true", dest="separate_vocals",
+                   help="Tách giọng khỏi nhạc nền bằng Demucs trước khi nhận dạng")
     t.set_defaults(func=cmd_transcribe)
 
     b = sub.add_parser("build", help="Sinh SRT/VTT/ASS từ segment đã chỉnh sửa")

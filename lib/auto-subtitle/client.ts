@@ -26,12 +26,13 @@ async function jsonOrThrow<T>(res: Response): Promise<T> {
 
 export async function uploadVideo(
   file: File,
-  opts: { language: string; title?: string },
+  opts: { language: string; title?: string; separateVocals?: boolean },
   onProgress?: (fraction: number) => void,
 ): Promise<ProjectDTO> {
   const form = new FormData()
   form.append("file", file)
   form.append("language", opts.language)
+  if (opts.separateVocals) form.append("separateVocals", "true")
   if (opts.title) form.append("title", opts.title)
 
   // Dùng XHR để có tiến độ upload.
@@ -64,8 +65,17 @@ export async function uploadVideo(
   })
 }
 
-export async function startTranscription(projectId: string): Promise<void> {
-  await jsonOrThrow(await fetch(`${BASE}/projects/${projectId}/start`, { method: "POST" }))
+export async function startTranscription(
+  projectId: string,
+  opts?: { separateVocals?: boolean },
+): Promise<void> {
+  await jsonOrThrow(
+    await fetch(`${BASE}/projects/${projectId}/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(opts ?? {}),
+    }),
+  )
 }
 
 export async function getProject(projectId: string): Promise<ProjectDetailDTO> {

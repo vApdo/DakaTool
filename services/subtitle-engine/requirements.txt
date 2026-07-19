@@ -1,3 +1,6 @@
 faster-whisper==1.2.1
 pydantic>=2,<3
 requests>=2.31,<3
+# Tách giọng khỏi nhạc nền (tuỳ chọn separate-vocals). Cần torch (cài bản CPU
+# qua https://download.pytorch.org/whl/cpu trước — xem Dockerfile).
+demucs>=4.0,<5

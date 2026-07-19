@@ -70,6 +70,8 @@ model SubtitleProject {
   durationMs        Int?
   detectedLanguage  String?
   requestedLanguage String
+  /// Tách giọng nói khỏi nhạc nền (Demucs) trước khi nhận dạng — cho video nhạc to/bài hát.
+  separateVocals    Boolean       @default(false)
   status            ProjectStatus @default(UPLOADING)
   progress          Int           @default(0)
   errorCode         String?

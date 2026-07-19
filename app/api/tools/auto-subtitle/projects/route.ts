@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
 
     const languageParse = languageSchema.safeParse(form.get("language") ?? "auto")
     const language = languageParse.success ? languageParse.data : "auto"
+    const separateVocals = form.get("separateVocals") === "true"
     const titleRaw = form.get("title")
     const title =
       typeof titleRaw === "string" && titleRaw.trim() ? titleRaw.trim().slice(0, 300) : file.name
@@ -108,6 +109,7 @@ export async function POST(request: NextRequest) {
       sourceSizeBytes: file.size,
       sourceStorageKey: key,
       requestedLanguage: language,
+      separateVocals,
     })
     const updated = await repo.markUploaded(project.id, ownerId, { durationMs })
 

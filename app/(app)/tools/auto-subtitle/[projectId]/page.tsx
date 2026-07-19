@@ -23,6 +23,9 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
   const [restarting, setRestarting] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [sepVocals, setSepVocals] = useState(false)
+  const sepInit = useRef(false)
+
   async function handleRetranscribe() {
     const sure = window.confirm(
       "Nhận dạng lại sẽ THAY TOÀN BỘ phụ đề hiện tại (kể cả phần bạn đã sửa) bằng kết quả mới. Tiếp tục?",
@@ -30,7 +33,7 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
     if (!sure) return
     setRestarting(true)
     try {
-      await startTranscription(projectId)
+      await startTranscription(projectId, { separateVocals: sepVocals })
       window.location.reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không bắt đầu lại được.")
@@ -46,6 +49,10 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
         const data = await getProject(projectId)
         if (cancelled) return
         setProject(data)
+        if (!sepInit.current) {
+          setSepVocals(data.separateVocals)
+          sepInit.current = true
+        }
         setError(null)
         // Poll mỗi 2s khi còn đang xử lý.
         if (PROCESSING_STATUSES.has(data.status)) {
@@ -89,15 +96,25 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
             {(project.status === "READY" ||
               project.status === "COMPLETED" ||
               project.status === "FAILED") && (
-              <button
-                type="button"
-                onClick={handleRetranscribe}
-                disabled={restarting}
-                className="btn-secondary text-sm disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 ${restarting ? "animate-spin" : ""}`} />
-                Nhận dạng lại
-              </button>
+              <span className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleRetranscribe}
+                  disabled={restarting}
+                  className="btn-secondary text-sm disabled:opacity-50"
+                >
+                  <RefreshCw className={`h-4 w-4 ${restarting ? "animate-spin" : ""}`} />
+                  Nhận dạng lại
+                </button>
+                <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={sepVocals}
+                    onChange={(e) => setSepVocals(e.target.checked)}
+                  />
+                  Tách giọng khỏi nhạc nền (chậm hơn)
+                </label>
+              </span>
             )}
           </div>
           <p className="mb-6 text-sm text-gray-500">

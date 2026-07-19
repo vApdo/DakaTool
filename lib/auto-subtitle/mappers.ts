@@ -82,6 +82,7 @@ export function toProjectDTO(p: SubtitleProject): ProjectDTO {
     durationMs: p.durationMs,
     detectedLanguage: p.detectedLanguage,
     requestedLanguage: p.requestedLanguage,
+    separateVocals: p.separateVocals,
     status: p.status,
     progress: p.progress,
     errorCode: p.errorCode,

@@ -16,6 +16,7 @@ const ACCEPT = ".mp4,.mov,.webm,.mkv,video/mp4,video/quicktime,video/webm,video/
 export function VideoUpload({ onStarted }: { onStarted: (projectId: string) => void }) {
   const [file, setFile] = useState<File | null>(null)
   const [language, setLanguage] = useState("auto")
+  const [separateVocals, setSeparateVocals] = useState(false)
   const [uploadPct, setUploadPct] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +28,9 @@ export function VideoUpload({ onStarted }: { onStarted: (projectId: string) => v
     setBusy(true)
     setUploadPct(0)
     try {
-      const project = await uploadVideo(file, { language }, (f) => setUploadPct(Math.round(f * 100)))
+      const project = await uploadVideo(file, { language, separateVocals }, (f) =>
+        setUploadPct(Math.round(f * 100)),
+      )
       setUploadPct(100)
       await startTranscription(project.id)
       onStarted(project.id)
@@ -89,6 +92,22 @@ export function VideoUpload({ onStarted }: { onStarted: (projectId: string) => v
           ))}
         </select>
       </div>
+
+      <label className="flex items-start gap-2.5 rounded-xl border border-gray-200 p-3 text-sm dark:border-gray-700">
+        <input
+          type="checkbox"
+          checked={separateVocals}
+          onChange={(e) => setSeparateVocals(e.target.checked)}
+          className="mt-0.5"
+        />
+        <span>
+          <span className="font-medium">Video có nhạc nền to / bài hát</span>
+          <span className="block text-xs text-gray-500">
+            Tách giọng nói khỏi nhạc (Demucs) trước khi nhận dạng — chính xác hơn nhiều với
+            video nhạc, đổi lại xử lý chậm hơn. Lần đầu dùng sẽ tải model ~300MB.
+          </span>
+        </span>
+      </label>
 
       {uploadPct !== null && (
         <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">

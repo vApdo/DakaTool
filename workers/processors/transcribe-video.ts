@@ -30,6 +30,7 @@ import { createTempDir } from "../utils/temp-directory"
 /** Map stage engine → ProjectStatus. */
 const STAGE_STATUS: Record<string, "EXTRACTING_AUDIO" | "TRANSCRIBING" | "FORMATTING"> = {
   extracting_audio: "EXTRACTING_AUDIO",
+  separating_vocals: "EXTRACTING_AUDIO",
   transcribing: "TRANSCRIBING",
   formatting: "FORMATTING",
   writing: "FORMATTING",
@@ -88,6 +89,7 @@ export async function processTranscribe(job: Job<TranscribeJobData>): Promise<vo
       computeType: process.env.WHISPER_COMPUTE_TYPE ?? "int8",
       beamSize: Number(process.env.WHISPER_BEAM_SIZE ?? 5),
       vadEnabled: (process.env.WHISPER_VAD_ENABLED ?? "true") !== "false",
+      separateVocals: project.separateVocals,
       timeoutMs: JOB_TIMEOUT_MS,
       onProgress: (event) => {
         if (event.type === "progress") {

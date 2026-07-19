@@ -50,6 +50,7 @@ export async function createProject(input: {
   sourceSizeBytes: number
   sourceStorageKey: string
   requestedLanguage: string
+  separateVocals?: boolean
 }): Promise<ProjectDTO> {
   const project = await prisma.subtitleProject.create({
     data: {
@@ -60,11 +61,25 @@ export async function createProject(input: {
       sourceSizeBytes: BigInt(input.sourceSizeBytes),
       sourceStorageKey: input.sourceStorageKey,
       requestedLanguage: input.requestedLanguage,
+      separateVocals: input.separateVocals ?? false,
       status: "UPLOADING",
       subtitleStyle: DEFAULT_SUBTITLE_STYLE as unknown as Prisma.InputJsonValue,
     },
   })
   return toProjectDTO(project)
+}
+
+/** Bật/tắt tách giọng cho project (trước khi bấm Nhận dạng lại). */
+export async function setSeparateVocals(
+  projectId: string,
+  ownerId: string | null,
+  value: boolean,
+): Promise<void> {
+  await loadOwned(projectId, ownerId)
+  await prisma.subtitleProject.update({
+    where: { id: projectId },
+    data: { separateVocals: value },
+  })
 }
 
 /** Đánh dấu upload xong (client đã đẩy file lên storage). */

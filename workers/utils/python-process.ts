@@ -24,6 +24,8 @@ export interface RunEngineOptions {
   computeType: string
   beamSize: number
   vadEnabled: boolean
+  /** Tách giọng khỏi nhạc nền (Demucs) trước khi nhận dạng. */
+  separateVocals?: boolean
   timeoutMs: number
   /** API key OpenAI — truyền qua env (không đưa vào argv để không lộ trong process list). */
   apiKey?: string
@@ -84,6 +86,7 @@ export function runEngine(opts: RunEngineOptions): Promise<RunEngineResult> {
     String(opts.beamSize),
   ]
   if (!opts.vadEnabled) args.push("--no-vad")
+  if (opts.separateVocals) args.push("--separate-vocals")
   // API key đi qua env, KHÔNG qua argv.
   const extraEnv = opts.apiKey ? { OPENAI_API_KEY: opts.apiKey } : undefined
   return runSpawn(opts.pythonBin, args, opts.engineDir, opts.timeoutMs, opts.onProgress, extraEnv)
