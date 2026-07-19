@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, AlertTriangle } from "lucide-react"
 import { ProcessingProgress } from "@/components/auto-subtitle/processing-progress"
@@ -16,8 +16,8 @@ const PROCESSING_STATUSES = new Set([
   "RENDERING",
 ])
 
-export default function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const { projectId } = use(params)
+export default function ProjectPage({ params }: { params: { projectId: string } }) {
+  const { projectId } = params
   const [project, setProject] = useState<ProjectDetailDTO | null>(null)
   const [error, setError] = useState<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
