@@ -37,3 +37,50 @@ def test_empty_response():
 def test_chunk_length_depends_on_model():
     assert _chunk_seconds("gpt-4o-transcribe") == 90  # ngắn để suy giờ đỡ thô
     assert _chunk_seconds("whisper-1") == 600  # có timestamp riêng nên đoạn dài được
+
+
+def test_no_speech_prob_filtered():
+    from subtitle_engine.openai_transcriber import _segments_from_response
+
+    body = {
+        "segments": [
+            {"start": 0.0, "end": 2.0, "text": "Câu thật", "no_speech_prob": 0.1},
+            {"start": 2.0, "end": 4.0, "text": "Hãy đăng ký kênh", "no_speech_prob": 0.95},
+        ]
+    }
+    segs = _segments_from_response(body, 0, 4000)
+    assert len(segs) == 1
+    assert segs[0].text == "Câu thật"
+
+
+def test_parse_silences():
+    from subtitle_engine.openai_transcriber import parse_silences
+
+    stderr = """
+[silencedetect @ 0x1] silence_start: 1.5
+[silencedetect @ 0x1] silence_end: 3.25 | silence_duration: 1.75
+[silencedetect @ 0x1] silence_start: 10.0
+"""
+    silences = parse_silences(stderr)
+    assert silences[0] == (1500, 3250)
+    assert silences[1][0] == 10000  # im lặng mở tới hết file
+
+
+def test_speech_regions_inverted_and_merged():
+    from subtitle_engine.openai_transcriber import speech_regions_from_silences
+
+    # File 10s: im lặng 2–5s và 5.2–8s (hai khoảng sát nhau).
+    regions = speech_regions_from_silences([(2000, 5000), (5200, 8000)], 10_000)
+    # Vùng nói: 0–2s, (5–5.2s bị gộp/bỏ vì quá ngắn sau pad), 8–10s
+    assert regions[0][0] == 0
+    assert regions[-1][1] == 10_000
+    # Không vùng nào nằm giữa lòng khoảng im lặng dài
+    for s, e in regions:
+        assert e > s
+
+
+def test_speech_regions_all_silent():
+    from subtitle_engine.openai_transcriber import speech_regions_from_silences
+
+    # Cả file im lặng → không còn vùng nói nào
+    assert speech_regions_from_silences([(0, 10_000)], 10_000) == []
