@@ -39,18 +39,23 @@ def test_chunk_length_depends_on_model():
     assert _chunk_seconds("whisper-1") == 600  # có timestamp riêng nên đoạn dài được
 
 
-def test_no_speech_prob_filtered():
+def test_no_speech_needs_both_conditions():
+    """Chuẩn Whisper: chỉ bỏ khi no_speech_prob CAO và avg_logprob THẤP (cả hai)."""
     from subtitle_engine.openai_transcriber import _segments_from_response
 
     body = {
         "segments": [
-            {"start": 0.0, "end": 2.0, "text": "Câu thật", "no_speech_prob": 0.1},
-            {"start": 2.0, "end": 4.0, "text": "Hãy đăng ký kênh", "no_speech_prob": 0.95},
+            # Câu thật, sạch → giữ
+            {"start": 0.0, "end": 2.0, "text": "Câu thật", "no_speech_prob": 0.1, "avg_logprob": -0.3},
+            # Ảo giác điển hình: nghi không phải tiếng nói + độ tin cậy thấp → bỏ
+            {"start": 2.0, "end": 4.0, "text": "Hãy đăng ký kênh", "no_speech_prob": 0.95, "avg_logprob": -1.4},
+            # Lời thoại trên nền nhạc: no_speech cao NHƯNG logprob tốt → PHẢI GIỮ
+            {"start": 4.0, "end": 6.0, "text": "Thoại có nhạc nền", "no_speech_prob": 0.8, "avg_logprob": -0.4},
         ]
     }
-    segs = _segments_from_response(body, 0, 4000)
-    assert len(segs) == 1
-    assert segs[0].text == "Câu thật"
+    segs = _segments_from_response(body, 0, 6000)
+    texts = [s.text for s in segs]
+    assert texts == ["Câu thật", "Thoại có nhạc nền"]
 
 
 def test_parse_silences():

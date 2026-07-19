@@ -182,17 +182,24 @@ def _post_openai(
     return resp.json()
 
 
-# Câu có no_speech_prob cao hơn ngưỡng này = model tự nhận "không phải tiếng nói" → bỏ
-# (đây là nguồn ảo giác "Hãy đăng ký kênh..." trên đoạn nhạc).
+# Heuristic chuẩn của Whisper: chỉ coi là "không phải tiếng nói" khi CẢ HAI:
+# no_speech_prob cao VÀ avg_logprob thấp. Nếu chỉ xét no_speech_prob, lời thoại
+# có nhạc nền sẽ bị lọc nhầm (no_speech_prob bị nhạc đẩy lên cao).
 NO_SPEECH_THRESHOLD = 0.6
+LOGPROB_THRESHOLD = -1.0
 
 
 def _segments_from_response(body: dict, offset_ms: int, chunk_dur_ms: int) -> list[RawSegment]:
     """Chuyển JSON OpenAI → RawSegment, cộng offset thời gian của đoạn."""
     segs: list[RawSegment] = []
+    dropped = 0
     if isinstance(body.get("segments"), list) and body["segments"]:
         for s in body["segments"]:
-            if float(s.get("no_speech_prob", 0.0)) > NO_SPEECH_THRESHOLD:
+            if (
+                float(s.get("no_speech_prob", 0.0)) > NO_SPEECH_THRESHOLD
+                and float(s.get("avg_logprob", 0.0)) < LOGPROB_THRESHOLD
+            ):
+                dropped += 1
                 continue
             start = int(round(float(s.get("start", 0)) * 1000)) + offset_ms
             end = int(round(float(s.get("end", 0)) * 1000)) + offset_ms
@@ -206,6 +213,8 @@ def _segments_from_response(body: dict, offset_ms: int, chunk_dur_ms: int) -> li
             segs.append(
                 RawSegment(start_ms=offset_ms, end_ms=offset_ms + chunk_dur_ms, text=text, words=[])
             )
+    if dropped:
+        progress.log(f"Lọc {dropped} câu no-speech (đoạn offset {offset_ms}ms)")
     return segs
 
 
