@@ -87,75 +87,88 @@ def _ends_with(text: str, chars: tuple[str, ...]) -> bool:
     return bool(stripped) and stripped[-1] in chars
 
 
-def group_into_cues(words: list[Word]) -> list[Cue]:
-    """Gom từ thành cue theo các luật giới hạn. Trả cue chưa canh chỉnh thời gian."""
-    cues: list[Cue] = []
-    current: list[Word] = []
+def _pause_before(words: list[Word], i: int) -> int:
+    """Khoảng lặng (ms) giữa từ i-1 và i."""
+    return (words[i].start_ms or 0) - (words[i - 1].end_ms or 0)
 
-    def flush() -> None:
-        if not current:
-            return
-        text = wrap_text([_clean_text(w.text) for w in current])
-        cues.append(
-            Cue(
-                order=len(cues) + 1,
-                start_ms=current[0].start_ms or 0,
-                end_ms=current[-1].end_ms or 0,
-                text=text,
-                words=list(current),
-            )
-        )
-        current.clear()
 
-    for word in words:
-        if current:
-            last = current[-1]
-            pause = (word.start_ms or 0) - (last.end_ms or 0)
-            projected_chars = _line_length(current + [word])
-            projected_dur = (word.end_ms or 0) - (current[0].start_ms or 0)
-            if (
-                pause >= SPLIT_PAUSE_MS
-                or projected_chars > MAX_CHARS_PER_CUE
-                or projected_dur > MAX_CUE_DURATION_MS
-            ):
-                flush()
-        current.append(word)
-        # Ưu tiên cắt sau dấu kết câu mạnh; cắt sau dấu yếu nếu cue đã đủ dài.
-        if _ends_with(word.text, _STRONG_PUNCT):
-            flush()
-        elif _ends_with(word.text, _WEAK_PUNCT) and _line_length(current) >= MAX_CHARS_PER_LINE:
-            flush()
+def _needs_split(words: list[Word]) -> bool:
+    """Một nhóm từ có cần chia nhỏ không: quá dài ký tự / quá lâu / có khoảng lặng rõ."""
+    if _line_length(words) > MAX_CHARS_PER_CUE:
+        return True
+    dur = (words[-1].end_ms or 0) - (words[0].start_ms or 0)
+    if dur > MAX_CUE_DURATION_MS:
+        return True
+    return any(_pause_before(words, i) >= SPLIT_PAUSE_MS for i in range(1, len(words)))
 
-    flush()
-    return cues
+
+def _best_split_index(words: list[Word]) -> int:
+    """Chọn vị trí cắt TỰ NHIÊN nhất (cắt SAU từ index trả về).
+
+    Ưu tiên: dấu kết câu mạnh → dấu ngắt yếu → khoảng lặng dài nhất → giữa theo ký tự.
+    Trong mỗi nhóm ưu tiên, chọn điểm GẦN GIỮA nhất để hai vế cân đối, dễ đọc.
+    """
+    n = len(words)
+    positions = list(range(n - 1))  # cắt sau từ i (không cắt sau từ cuối)
+    mid = (n - 1) / 2
+
+    def closest_to_middle(cands: list[int]) -> int:
+        return min(cands, key=lambda i: abs(i - mid))
+
+    strong = [i for i in positions if _ends_with(words[i].text, _STRONG_PUNCT)]
+    if strong:
+        return closest_to_middle(strong)
+    weak = [i for i in positions if _ends_with(words[i].text, _WEAK_PUNCT)]
+    if weak:
+        return closest_to_middle(weak)
+    # Khoảng lặng lớn nhất nếu đủ đáng kể.
+    gap, idx = max((_pause_before(words, i + 1), i) for i in positions)
+    if gap >= SPLIT_PAUSE_MS:
+        return idx
+    # Không có tín hiệu ngôn ngữ: cắt ở ranh giới từ gần giữa theo số ký tự.
+    total = _line_length(words)
+    for i in positions:
+        if _line_length(words[: i + 1]) >= total / 2:
+            return i
+    return max(0, n // 2 - 1)
+
+
+def _split_segment(words: list[Word]) -> list[list[Word]]:
+    """Chia đệ quy một segment (đã là câu tự nhiên của Whisper) khi vượt giới hạn."""
+    if len(words) <= 1 or not _needs_split(words):
+        return [words]
+    i = _best_split_index(words)
+    if i < 0 or i >= len(words) - 1:
+        return [words]
+    return _split_segment(words[: i + 1]) + _split_segment(words[i + 1 :])
 
 
 def wrap_text(tokens: list[str]) -> str:
-    """Xuống dòng tham lam sao cho mỗi dòng ≤ MAX_CHARS_PER_LINE, tối đa 2 dòng.
+    """Xuống dòng CÂN ĐỐI cho tối đa 2 dòng, cắt tại ranh giới từ (không cắt giữa từ).
 
-    Nếu không đủ chỗ trong 2 dòng (hiếm, do từ quá dài) vẫn giữ đủ chữ, không cắt từ.
+    - Vừa một dòng (≤ MAX_CHARS_PER_LINE) → để nguyên một dòng.
+    - Dài hơn → chia hai dòng sao cho độ dài hai dòng gần bằng nhau và cả hai ≤ giới hạn,
+      dễ đọc hơn kiểu nhồi đầy dòng trên rồi hất phần dư xuống dòng dưới.
     """
     if not tokens:
         return ""
-    lines: list[str] = []
-    line = ""
-    for tok in tokens:
-        candidate = tok if not line else f"{line} {tok}"
-        if len(candidate) <= MAX_CHARS_PER_LINE or not line:
-            line = candidate
-        else:
-            lines.append(line)
-            line = tok
-            if len(lines) >= MAX_LINES_PER_CUE:
-                # Dồn phần còn lại vào dòng cuối để không mất chữ.
-                break
-    if line:
-        lines.append(line)
-    if len(lines) > MAX_LINES_PER_CUE:
-        head = lines[: MAX_LINES_PER_CUE - 1]
-        tail = " ".join(lines[MAX_LINES_PER_CUE - 1 :])
-        lines = head + [tail]
-    return "\n".join(lines)
+    full = " ".join(tokens)
+    if len(full) <= MAX_CHARS_PER_LINE:
+        return full
+
+    best_i = 1
+    best_penalty: float | None = None
+    for i in range(1, len(tokens)):
+        len1 = len(" ".join(tokens[:i]))
+        len2 = len(" ".join(tokens[i:]))
+        # Phạt chênh lệch độ dài; phạt nặng nếu một dòng vượt giới hạn.
+        penalty = abs(len1 - len2)
+        if len1 > MAX_CHARS_PER_LINE or len2 > MAX_CHARS_PER_LINE:
+            penalty += 1000
+        if best_penalty is None or penalty < best_penalty:
+            best_penalty, best_i = penalty, i
+
+    return " ".join(tokens[:best_i]) + "\n" + " ".join(tokens[best_i:])
 
 
 def _adjust_timings(cues: list[Cue]) -> list[Cue]:
@@ -181,9 +194,29 @@ def _adjust_timings(cues: list[Cue]) -> list[Cue]:
 
 
 def format_segments(segments: list[RawSegment]) -> list[Cue]:
-    """Toàn bộ pipeline: flatten → group → canh thời gian → đánh số lại."""
-    words = flatten_words(segments)
-    cues = group_into_cues(words)
+    """Toàn bộ pipeline: TÔN TRỌNG ranh giới câu của Whisper.
+
+    Mỗi segment từ Whisper là một đơn vị câu/mệnh đề tự nhiên. Ta giữ nguyên ranh giới
+    đó (không gộp hai câu vào một cue), chỉ chia nhỏ segment khi nó quá dài — và khi chia
+    thì cắt ở dấu câu / chỗ ngắt hơi gần giữa nhất để hai vế cân đối, đọc tự nhiên.
+    """
+    cues: list[Cue] = []
+    for seg in segments:
+        words = flatten_words([seg])
+        if not words:
+            continue
+        for piece in _split_segment(words):
+            if not piece:
+                continue
+            cues.append(
+                Cue(
+                    order=0,
+                    start_ms=piece[0].start_ms or 0,
+                    end_ms=piece[-1].end_ms or 0,
+                    text=wrap_text([_clean_text(w.text) for w in piece]),
+                    words=list(piece),
+                )
+            )
     cues = _adjust_timings(cues)
     for idx, cue in enumerate(cues, start=1):
         cue.order = idx

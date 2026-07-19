@@ -103,6 +103,29 @@ def test_wrap_text_line_length():
     assert wrapped.count("\n") <= 1
 
 
+def test_respects_segment_boundaries():
+    # Hai câu tự nhiên riêng biệt → KHÔNG gộp thành một cue.
+    segs = [
+        RawSegment(0, 1500, "Xin chào.", _words([("Xin", 0, 700), ("chào.", 700, 1500)])),
+        RawSegment(1700, 3200, "Tạm biệt.", _words([("Tạm", 1700, 2400), ("biệt.", 2400, 3200)])),
+    ]
+    cues = format_segments(segs)
+    assert len(cues) == 2
+    assert "Xin chào." in cues[0].text
+    assert "Tạm biệt." in cues[1].text
+
+
+def test_balanced_two_line_wrap():
+    # Câu dài hơn một dòng → chia hai dòng gần cân, không nhồi đầy dòng trên.
+    words = _words([(f"từ{i}", i * 500, i * 500 + 400) for i in range(16)])
+    seg = RawSegment(0, 8000, " ".join(w.text for w in words), words)
+    cues = format_segments(seg and [seg])
+    for c in cues:
+        lines = c.text.split("\n")
+        if len(lines) == 2:
+            assert abs(len(lines[0]) - len(lines[1])) <= 12  # hai dòng gần cân
+
+
 def test_order_is_sequential():
     words = _words([(f"w{i}", i * 1000, i * 1000 + 400) for i in range(10)])
     seg = RawSegment(start_ms=0, end_ms=10000, text=" ".join(w.text for w in words), words=words)
