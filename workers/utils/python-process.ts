@@ -134,8 +134,11 @@ function runSpawn(
     })
 
     child.stderr.on("data", (buf: Buffer) => {
-      stderrChunks.push(buf.toString())
+      const text = buf.toString()
+      stderrChunks.push(text)
       if (stderrChunks.length > 200) stderrChunks.shift()
+      // Chuyển tiếp log chẩn đoán của engine ra console worker (hiện trong docker logs).
+      process.stderr.write(`[engine] ${text}`)
     })
 
     child.on("error", (err) => {

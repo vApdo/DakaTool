@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, AlertTriangle } from "lucide-react"
+import { ArrowLeft, AlertTriangle, RefreshCw } from "lucide-react"
 import { ProcessingProgress } from "@/components/auto-subtitle/processing-progress"
 import { SubtitleEditor } from "@/components/auto-subtitle/subtitle-editor"
-import { getProject } from "@/lib/auto-subtitle/client"
+import { getProject, startTranscription } from "@/lib/auto-subtitle/client"
 import type { ProjectDetailDTO } from "@/lib/auto-subtitle/types"
 
 const PROCESSING_STATUSES = new Set([
@@ -20,7 +20,23 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
   const { projectId } = params
   const [project, setProject] = useState<ProjectDetailDTO | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [restarting, setRestarting] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  async function handleRetranscribe() {
+    const sure = window.confirm(
+      "Nhận dạng lại sẽ THAY TOÀN BỘ phụ đề hiện tại (kể cả phần bạn đã sửa) bằng kết quả mới. Tiếp tục?",
+    )
+    if (!sure) return
+    setRestarting(true)
+    try {
+      await startTranscription(projectId)
+      window.location.reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không bắt đầu lại được.")
+      setRestarting(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -66,9 +82,24 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
 
       {project && (
         <>
-          <h1 className="mb-1 text-xl font-semibold text-black dark:text-white md:text-2xl">
-            {project.title}
-          </h1>
+          <div className="mb-1 flex flex-wrap items-center gap-3">
+            <h1 className="text-xl font-semibold text-black dark:text-white md:text-2xl">
+              {project.title}
+            </h1>
+            {(project.status === "READY" ||
+              project.status === "COMPLETED" ||
+              project.status === "FAILED") && (
+              <button
+                type="button"
+                onClick={handleRetranscribe}
+                disabled={restarting}
+                className="btn-secondary text-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${restarting ? "animate-spin" : ""}`} />
+                Nhận dạng lại
+              </button>
+            )}
+          </div>
           <p className="mb-6 text-sm text-gray-500">
             {project.detectedLanguage
               ? `Ngôn ngữ: ${project.detectedLanguage.toUpperCase()}`
