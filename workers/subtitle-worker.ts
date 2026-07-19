@@ -7,8 +7,13 @@
  * Đây là ranh giới tin cậy: worker gọi Python engine bằng spawn + mảng tham số.
  */
 import { Worker } from "bullmq"
-import { JOB_NAMES, SUBTITLE_QUEUE_NAME, WORKER_CONCURRENCY } from "@/lib/auto-subtitle/constants"
-import { getRedisConnection } from "@/lib/queue/connection"
+import {
+  JOB_NAMES,
+  SUBTITLE_QUEUE_NAME,
+  WORKER_CONCURRENCY,
+  WORKER_LOCK_DURATION_MS,
+} from "@/lib/auto-subtitle/constants"
+import { createRedisConnection } from "@/lib/queue/connection"
 import type { SubtitleJobData } from "@/lib/queue/subtitle-queue"
 import { processGenerateExport } from "./processors/generate-export"
 import { processRenderVideo } from "./processors/render-video"
@@ -29,8 +34,13 @@ const worker = new Worker<SubtitleJobData>(
     }
   },
   {
-    connection: getRedisConnection(),
+    connection: createRedisConnection(),
     concurrency: WORKER_CONCURRENCY,
+    // Job transcribe/render chạy nhiều phút (đặc biệt model large-v3). Khóa mặc định
+    // 30s là quá ngắn → tăng lên để job dài không bị coi là "treo" và chạy lại vô hạn.
+    lockDuration: WORKER_LOCK_DURATION_MS,
+    stalledInterval: WORKER_LOCK_DURATION_MS,
+    maxStalledCount: 2,
   },
 )
 

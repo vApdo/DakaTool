@@ -78,3 +78,9 @@ export function truncateError(message: string): string {
 
 export const JOB_TIMEOUT_MS = intEnv("JOB_TIMEOUT_MS", 60 * 60 * 1000) // 1 giờ
 export const WORKER_CONCURRENCY = intEnv("WORKER_CONCURRENCY", 1)
+
+/**
+ * Thời gian giữ khóa job (ms). Job transcribe/render chạy nhiều phút; đặt rộng để
+ * không bị BullMQ coi là "treo". Worker vẫn tự gia hạn khóa định kỳ khi còn sống.
+ */
+export const WORKER_LOCK_DURATION_MS = intEnv("WORKER_LOCK_DURATION_MS", 30 * 60 * 1000) // 30 phút
