@@ -30,13 +30,57 @@ export async function isCodeConfigured(): Promise<boolean> {
   return (await getManagerCode()) !== null
 }
 
-/** Đặt mã lần đầu (chỉ khi CHƯA có) hoặc đổi mã khi đã xác thực. */
+/** Đặt/đổi mã quản lý. */
 export async function setManagerCode(code: string): Promise<void> {
   await prisma.appSetting.upsert({
     where: { key: SETTING_KEY },
     update: { value: code },
     create: { key: SETTING_KEY, value: code },
   })
+}
+
+/**
+ * Đặt mã LẦN ĐẦU một cách nguyên tử: dùng `create` (key là primary key) nên nếu
+ * hai request cùng lúc thì chỉ một cái thắng, cái kia nhận false và phải nhập lại
+ * đúng mã đã thắng — tránh cảnh cả hai tưởng mình đặt thành công.
+ */
+export async function tryClaimManagerCode(code: string): Promise<boolean> {
+  try {
+    await prisma.appSetting.create({ data: { key: SETTING_KEY, value: code } })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Chống dò mã: đếm số lần nhập sai theo IP trong bộ nhớ tiến trình.
+ * Đủ cho bản chạy nội bộ một tiến trình; nếu sau này chạy nhiều instance thì
+ * chuyển sang Redis.
+ */
+const MAX_ATTEMPTS = 8
+const WINDOW_MS = 10 * 60 * 1000
+const attempts = new Map<string, { count: number; resetAt: number }>()
+
+export function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const rec = attempts.get(ip)
+  if (!rec || now > rec.resetAt) {
+    attempts.set(ip, { count: 0, resetAt: now + WINDOW_MS })
+    return true
+  }
+  return rec.count < MAX_ATTEMPTS
+}
+
+export function recordFailedAttempt(ip: string): void {
+  const now = Date.now()
+  const rec = attempts.get(ip)
+  if (!rec || now > rec.resetAt) attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS })
+  else rec.count += 1
+}
+
+export function clearAttempts(ip: string): void {
+  attempts.delete(ip)
 }
 
 export async function verifyCode(code: string): Promise<boolean> {

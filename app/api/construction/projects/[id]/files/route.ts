@@ -38,6 +38,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       ? (kindRaw as "PLAN" | "BUDGET" | "OTHER")
       : "OTHER"
 
+    // Kiểm tra công trình tồn tại TRƯỚC khi ghi file, tránh để lại file mồ côi
+    // trong storage khi id sai.
+    await repo.assertProjectExists(params.id)
+
     const buf = Buffer.from(await file.arrayBuffer())
     const key = docStorageKey(params.id, file.name)
     const storage = getStorage()
@@ -48,13 +52,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       contentLength: buf.length,
     })
 
-    const { id } = await repo.createFile(params.id, {
-      kind,
-      filename: file.name.slice(0, 200),
-      storageKey: key,
-      sizeBytes: buf.length,
-    })
-    return ok({ id }, { status: 201 })
+    try {
+      const { id } = await repo.createFile(params.id, {
+        kind,
+        filename: file.name.slice(0, 200),
+        storageKey: key,
+        sizeBytes: buf.length,
+      })
+      return ok({ id }, { status: 201 })
+    } catch (err) {
+      await storage.deleteObject(key).catch(() => undefined)
+      throw err
+    }
   } catch (err) {
     return handleError(err)
   }

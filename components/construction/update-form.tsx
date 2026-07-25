@@ -28,21 +28,36 @@ export function UpdateForm({ projectId, onPosted }: { projectId: string; onPoste
     if (saved) setAuthor(saved)
   }, [])
 
+  // Thu hồi blob URL khi rời trang để không rò rỉ bộ nhớ.
+  const photosRef = useRef<Picked[]>([])
+  photosRef.current = photos
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach((p) => URL.revokeObjectURL(p.preview))
+    }
+  }, [])
+
   async function addFiles(list: FileList | null) {
     if (!list) return
     setError(null)
-    const room = MAX_PHOTOS_PER_UPDATE - photos.length
-    const files = Array.from(list).slice(0, Math.max(0, room))
-    if (files.length < list.length) {
-      setError(`Tối đa ${MAX_PHOTOS_PER_UPDATE} ảnh mỗi lần đăng.`)
-    }
     const compressed = await Promise.all(
-      files.map(async (f) => {
+      Array.from(list).map(async (f) => {
         const file = await compressImage(f)
         return { file, preview: URL.createObjectURL(file), caption: "" }
       }),
     )
-    setPhotos((prev) => [...prev, ...compressed])
+    // Cắt theo state MỚI NHẤT (không dùng biến đóng cũ), tránh vượt giới hạn khi
+    // người dùng chọn ảnh hai lần liên tiếp lúc đang nén.
+    setPhotos((prev) => {
+      const room = Math.max(0, MAX_PHOTOS_PER_UPDATE - prev.length)
+      const accepted = compressed.slice(0, room)
+      const rejected = compressed.slice(room)
+      rejected.forEach((p) => URL.revokeObjectURL(p.preview))
+      if (rejected.length > 0) {
+        setError(`Tối đa ${MAX_PHOTOS_PER_UPDATE} ảnh mỗi lần đăng.`)
+      }
+      return [...prev, ...accepted]
+    })
   }
 
   function removeAt(i: number) {

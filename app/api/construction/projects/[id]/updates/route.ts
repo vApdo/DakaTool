@@ -29,43 +29,67 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const form = await request.formData()
     const metaRaw = form.get("meta")
-    const meta = createUpdateMetaSchema.parse(
-      typeof metaRaw === "string" ? JSON.parse(metaRaw) : {},
-    )
+    let metaJson: unknown = {}
+    if (typeof metaRaw === "string") {
+      try {
+        metaJson = JSON.parse(metaRaw)
+      } catch {
+        return errorResponse("INVALID_META", "Dữ liệu gửi lên không hợp lệ.", 400)
+      }
+    }
+    const meta = createUpdateMetaSchema.parse(metaJson)
 
     const files = form.getAll("photos").filter((f): f is File => f instanceof File)
     if (files.length > MAX_PHOTOS_PER_UPDATE) {
       return errorResponse("TOO_MANY_PHOTOS", `Tối đa ${MAX_PHOTOS_PER_UPDATE} ảnh mỗi lần.`, 400)
     }
 
+    // Kiểm tra công trình tồn tại TRƯỚC khi ghi ảnh vào storage.
+    await repo.assertProjectExists(params.id)
+
     const storage = getStorage()
     const photos: Array<{ storageKey: string; caption?: string }> = []
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      if (file.size > MAX_PHOTO_BYTES) {
-        return errorResponse("PHOTO_TOO_LARGE", `Ảnh "${file.name}" vượt 10MB.`, 413)
-      }
-      const buf = Buffer.from(await file.arrayBuffer())
-      const kind = sniffImage(buf)
-      if (!kind) {
-        return errorResponse("INVALID_IMAGE", `File "${file.name}" không phải ảnh JPEG/PNG/WebP.`, 400)
-      }
-      const key = photoStorageKey(params.id, kind)
-      await storage.putObject({
-        key,
-        body: buf,
-        contentType: IMAGE_MIME[kind],
-        contentLength: buf.length,
-      })
-      photos.push({ storageKey: key, caption: meta.captions?.[i] || undefined })
-    }
+    // Ảnh đã ghi vào storage nhưng chưa lưu DB — phải dọn nếu có lỗi giữa chừng.
+    const cleanup = () =>
+      Promise.allSettled(photos.map((p) => storage.deleteObject(p.storageKey)))
 
-    const update = await repo.createUpdate(params.id, {
-      note: meta.note,
-      authorName: meta.authorName,
-      photos,
-    })
-    return ok({ update }, { status: 201 })
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        if (file.size > MAX_PHOTO_BYTES) {
+          await cleanup()
+          return errorResponse("PHOTO_TOO_LARGE", `Ảnh "${file.name}" vượt 10MB.`, 413)
+        }
+        const buf = Buffer.from(await file.arrayBuffer())
+        const kind = sniffImage(buf)
+        if (!kind) {
+          await cleanup()
+          return errorResponse(
+            "INVALID_IMAGE",
+            `File "${file.name}" không phải ảnh JPEG/PNG/WebP.`,
+            400,
+          )
+        }
+        const key = photoStorageKey(params.id, kind)
+        await storage.putObject({
+          key,
+          body: buf,
+          contentType: IMAGE_MIME[kind],
+          contentLength: buf.length,
+        })
+        photos.push({ storageKey: key, caption: meta.captions?.[i] || undefined })
+      }
+
+      const update = await repo.createUpdate(params.id, {
+        note: meta.note,
+        authorName: meta.authorName,
+        photos,
+      })
+      return ok({ update }, { status: 201 })
+    } catch (err) {
+      await cleanup()
+      throw err
+    }
   } catch (err) {
     return handleError(err)
   }

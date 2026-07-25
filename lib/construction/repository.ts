@@ -3,7 +3,7 @@
  * Prisma trực tiếp. Quyền GHI đã được chặn ở route bằng requireManager (access.ts).
  */
 import { prisma } from "@/lib/prisma"
-import { AccessError } from "@/lib/http"
+import { AccessError, ConflictError } from "@/lib/http"
 import { getStorage } from "@/lib/storage"
 import {
   toProjectDTO,
@@ -27,7 +27,10 @@ export async function listProjects(): Promise<ConstructionProjectDTO[]> {
     include: {
       milestones: { select: { percent: true } },
       costItems: { select: { estimatedVnd: true, actualVnd: true } },
+      // Ảnh bìa = ảnh đầu của cập nhật MỚI NHẤT CÓ ẢNH (bỏ qua cập nhật chỉ có chữ,
+      // nếu không thẻ công trình sẽ mất ảnh bìa khi đăng một ghi chú không kèm ảnh).
       updates: {
+        where: { photos: { some: {} } },
         orderBy: { createdAt: "desc" },
         take: 1,
         include: { photos: { orderBy: { sortOrder: "asc" }, take: 1 } },
@@ -38,6 +41,15 @@ export async function listProjects(): Promise<ConstructionProjectDTO[]> {
   return projects.map((p) =>
     toProjectDTO(p, p.updates[0]?.photos[0]?.id ?? null, p._count.updates),
   )
+}
+
+/** Ném not_found nếu công trình không tồn tại — gọi TRƯỚC khi ghi file vào storage. */
+export async function assertProjectExists(projectId: string): Promise<void> {
+  const exists = await prisma.constructionProject.findUnique({
+    where: { id: projectId },
+    select: { id: true },
+  })
+  if (!exists) throw new AccessError("Công trình không tồn tại.", "not_found")
 }
 
 export async function getProjectDetail(id: string): Promise<ConstructionProjectDetailDTO> {
@@ -137,6 +149,37 @@ export async function getPhotoForStream(photoId: string) {
   return photo
 }
 
+/**
+ * Kiểm tra mọi id gửi lên đều còn tồn tại VÀ thuộc đúng công trình này.
+ *
+ * Không có bước này, `prisma.update({ where: { id } })` sẽ:
+ *  - ghi đè dòng của công trình khác nếu id lạ (chỉ lọc theo id), và
+ *  - ném P2025 → HTTP 500 nếu dòng vừa bị người khác xoá.
+ * Cả hai đều dẫn tới mất dữ liệu, nên chặn trước và báo lỗi rõ ràng.
+ */
+async function assertRowsBelong(
+  table: "milestone" | "cost",
+  projectId: string,
+  ids: string[],
+): Promise<void> {
+  if (ids.length === 0) return
+  const found =
+    table === "milestone"
+      ? await prisma.constructionMilestone.findMany({
+          where: { id: { in: ids }, projectId },
+          select: { id: true },
+        })
+      : await prisma.constructionCostItem.findMany({
+          where: { id: { in: ids }, projectId },
+          select: { id: true },
+        })
+  if (found.length !== ids.length) {
+    throw new ConflictError(
+      "Dữ liệu đã thay đổi (có dòng không còn tồn tại hoặc không thuộc công trình này). Vui lòng tải lại trang rồi nhập lại.",
+    )
+  }
+}
+
 /** Bulk upsert hạng mục: giữ các id gửi lên, xóa id vắng mặt, tạo dòng không id. */
 export async function saveMilestones(
   projectId: string,
@@ -149,6 +192,7 @@ export async function saveMilestones(
   if (!exists) throw new AccessError("Công trình không tồn tại.", "not_found")
 
   const keepIds = input.milestones.filter((m) => m.id).map((m) => m.id as string)
+  await assertRowsBelong("milestone", projectId, keepIds)
   await prisma.$transaction([
     prisma.constructionMilestone.deleteMany({
       where: { projectId, id: { notIn: keepIds } },
@@ -191,6 +235,7 @@ export async function saveCostItems(projectId: string, input: BulkCostsInput): P
   if (!exists) throw new AccessError("Công trình không tồn tại.", "not_found")
 
   const keepIds = input.costItems.filter((c) => c.id).map((c) => c.id as string)
+  await assertRowsBelong("cost", projectId, keepIds)
   await prisma.$transaction([
     prisma.constructionCostItem.deleteMany({ where: { projectId, id: { notIn: keepIds } } }),
     ...input.costItems.map((c, i) =>

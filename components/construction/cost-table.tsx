@@ -98,13 +98,15 @@ export function CostEditor({
   }
 
   async function save() {
+    // Dòng để trống tên sẽ bị xoá khi lưu — chặn lại thay vì âm thầm mất dữ liệu.
+    if (rows.some((r) => !r.name.trim())) {
+      setError("Có dòng chi phí chưa đặt tên. Nhập tên hoặc bấm thùng rác để xoá dòng đó.")
+      return
+    }
     setSaving(true)
     setError(null)
     try {
-      await saveCosts(
-        projectId,
-        rows.filter((r) => r.name.trim()),
-      )
+      await saveCosts(projectId, rows)
       setSaved(true)
       onSaved?.()
       setTimeout(() => setSaved(false), 2000)

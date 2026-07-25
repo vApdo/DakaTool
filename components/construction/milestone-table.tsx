@@ -90,13 +90,15 @@ export function MilestoneEditor({
   }
 
   async function save() {
+    // Dòng để trống tên sẽ bị xoá khi lưu — chặn lại thay vì âm thầm mất dữ liệu.
+    if (rows.some((r) => !r.name.trim())) {
+      setError("Có hạng mục chưa đặt tên. Nhập tên hoặc bấm thùng rác để xoá dòng đó.")
+      return
+    }
     setSaving(true)
     setError(null)
     try {
-      await saveMilestones(
-        projectId,
-        rows.filter((r) => r.name.trim()),
-      )
+      await saveMilestones(projectId, rows)
       setSaved(true)
       onSaved?.()
       setTimeout(() => setSaved(false), 2000)
