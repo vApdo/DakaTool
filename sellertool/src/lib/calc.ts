@@ -117,7 +117,8 @@ export function resolveActiveFees(settings: CalcSettings, config: FeeConfig): Re
 
     const dataRate = fee.type === "percent_by_category" ? (fee.rateByCategory?.[settings.categoryId] ?? null) : fee.rate
     const manualRate = settings.manualRates[fee.id]
-    const rate = dataRate ?? (typeof manualRate === "number" && manualRate > 0 ? manualRate : null)
+    // 0% là giá trị hợp lệ người dùng đã nhập (miễn/khuyến mãi phí) — chỉ null mới là "chưa nhập".
+    const rate = dataRate ?? (typeof manualRate === "number" && manualRate >= 0 ? manualRate : null)
     resolved.push({
       id: fee.id,
       label: fee.label,
@@ -198,11 +199,17 @@ export function breakdown(
 /**
  * Chế độ 2 — tìm giá bán tối thiểu đạt % lãi ròng mục tiêu m (trên giá bán).
  *
- * Vì phí % có trần nên không giải một phát được: vòng 1 bỏ qua trần
- * P = (C + G + R + Σflat) / (1 − Σrate − t − m); sau đó phí nào P×rate vượt trần
- * thì cố định = trần (chuyển sang tử số, loại rate khỏi mẫu số) rồi giải lại.
- * Mỗi vòng loại ít nhất một phí nên hội tụ trong ≤ 3 vòng với biểu phí thực tế.
- * Payout tăng đơn điệu theo P nên làm tròn LÊN bội 500đ vẫn bảo toàn lãi ≥ m.
+ * Vì phí % có trần nên không giải một phát được. Mỗi vòng: giả định một TẬP phí
+ * đang kịch trần (phí kịch trần thành hằng số ở tử số, rate rời khỏi mẫu số),
+ * giải P = (C + G + R + Σflat + Σtrần) / (1 − Σrate_chưa_trần − t − m), rồi đối
+ * chiếu lại tập trần theo P vừa giải — lặp tới khi tập ổn định. Hai điểm tinh vi:
+ * - Mẫu số ≤ 0 mà vẫn còn phí CÓ TRẦN chưa cố định → chưa chắc bất khả thi
+ *   (phí trần ngừng ăn % khi P đủ lớn): cố định chúng ở trần rồi giải tiếp.
+ *   Chỉ bất khả thi khi mẫu số ≤ 0 với toàn phí không trần.
+ * - Sau khi 2 phí cùng vào trần, giá giải lại có thể tụt xuống dưới ngưỡng trần
+ *   của phí nhỏ hơn — đối chiếu lại tập trần mỗi vòng để giá trả về là TỐI THIỂU.
+ * Payout tăng đơn điệu theo P nên làm tròn LÊN bội 500đ bảo toàn lãi ≥ m;
+ * lưới an toàn cuối cùng kiểm chứng bằng chính breakdown().
  */
 export function reversePrice(
   input: CalcSettings & { costPrice: number; targetMargin: number },
@@ -213,8 +220,9 @@ export function reversePrice(
   if (!Number.isFinite(C) || C <= 0) {
     return { ok: false, error: { code: "invalid_input", message: "Hãy nhập giá vốn lớn hơn 0." } }
   }
-  if (!Number.isFinite(m) || m <= 0 || m >= 1) {
-    return { ok: false, error: { code: "invalid_input", message: "Hãy nhập % lãi mong muốn trong khoảng 0–100%." } }
+  // m = 0 hợp lệ: chính là câu hỏi "giá hòa vốn tối thiểu là bao nhiêu?".
+  if (!Number.isFinite(m) || m < 0 || m >= 1) {
+    return { ok: false, error: { code: "invalid_input", message: "Hãy nhập % lãi từ 0 đến dưới 100." } }
   }
 
   const fees = resolveActiveFees(input, config)
@@ -231,40 +239,61 @@ export function reversePrice(
 
   const t = input.taxEnabled ? config.tax.rate : 0
   const returns = Math.round(input.returnRate * input.returnCostPerOrder)
+  const percentFees = fees.filter((f) => f.kind === "percent")
   const flatTotal = fees.filter((f) => f.kind === "flat").reduce((sum, f) => sum + Math.round(f.amount), 0)
+  const fixedBase = C + Math.round(input.packagingCost) + returns + flatTotal
 
-  let fixed = C + Math.round(input.packagingCost) + returns + flatTotal
-  let uncapped = fees.filter((f) => f.kind === "percent")
+  let cappedIds = new Set<string>()
   let price = 0
   let iterations = 0
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 8; i++) {
     iterations = i + 1
+    const uncapped = percentFees.filter((f) => !cappedIds.has(f.id))
     const sumRate = uncapped.reduce((sum, f) => sum + f.rate, 0)
     const denom = 1 - sumRate - t - m
+
     if (denom <= 0) {
-      return {
-        ok: false,
-        error: {
-          code: "infeasible",
-          message: `Không tồn tại giá bán nào đạt mức lãi này: tổng phí + thuế đã chiếm ${formatPercent(
-            sumRate + t,
-          )} giá bán.`,
-        },
+      const cappable = uncapped.filter((f) => f.cap !== null)
+      if (cappable.length === 0) {
+        // Toàn phí không trần mà mẫu số vẫn ≤ 0 → thật sự bất khả thi.
+        const baseline = percentFees.filter((f) => f.cap === null).reduce((sum, f) => sum + f.rate, 0) + t
+        return {
+          ok: false,
+          error: {
+            code: "infeasible",
+            message: `Không tồn tại giá bán nào đạt mức lãi này: các phí không có trần + thuế đã chiếm ${formatPercent(
+              baseline,
+            )} giá bán, nên lãi ròng tối đa chỉ có thể tiến sát ${formatPercent(1 - baseline)}.`,
+          },
+        }
       }
+      // Với P đủ lớn các phí có trần chắc chắn kịch trần — cố định rồi giải tiếp.
+      for (const fee of cappable) cappedIds.add(fee.id)
+      continue
     }
-    price = fixed / denom
-    const hitCap = uncapped.filter((f) => f.cap !== null && price * f.rate > f.cap)
-    if (hitCap.length === 0) break
-    fixed += hitCap.reduce((sum, f) => sum + (f.cap as number), 0)
-    uncapped = uncapped.filter((f) => !hitCap.includes(f))
+
+    const capTotal = percentFees
+      .filter((f) => cappedIds.has(f.id))
+      .reduce((sum, f) => sum + (f.cap as number), 0)
+    price = (fixedBase + capTotal) / denom
+
+    // Đối chiếu tập trần với giá vừa giải; ổn định thì dừng.
+    const shouldCap = new Set(
+      percentFees.filter((f) => f.cap !== null && price * f.rate > f.cap).map((f) => f.id),
+    )
+    if (shouldCap.size === cappedIds.size && [...shouldCap].every((id) => cappedIds.has(id))) break
+    cappedIds = shouldCap
   }
 
-  const rounded = roundUpTo(price, 500)
-  return {
-    ok: true,
-    price: rounded,
-    iterations,
-    receipt: breakdown({ ...input, sellPrice: rounded }, config),
+  let rounded = roundUpTo(price, 500)
+  let receipt = breakdown({ ...input, sellPrice: rounded }, config)
+  // Lưới an toàn tuyệt đối: nếu ca kỳ dị nào đó khiến lãi tại giá làm tròn vẫn
+  // hụt mục tiêu, nhích từng nấc 500đ (payout đơn điệu tăng nên luôn tới đích).
+  for (let bump = 0; bump < 200 && receipt.netMarginPct < m; bump++) {
+    rounded += 500
+    receipt = breakdown({ ...input, sellPrice: rounded }, config)
   }
+
+  return { ok: true, price: rounded, iterations, receipt }
 }

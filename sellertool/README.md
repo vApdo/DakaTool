@@ -70,6 +70,7 @@ Seed hiện tại lấy từ các bài phân tích tháng 5–6/2026, các ngu�
 - `hoa_hong.rateByCategory`, `giao_dich.rate`, `van_chuyen.rate` (TikTok Shop) — hiện để `null`.
 - Kiểm tra lại: phí giao dịch Shopee 6%, Freeship Xtra 5%/trần 40.000đ, Voucher Xtra 4%/trần 50.000đ (có nguồn ghi 5,5%), phí hạ tầng 3.000đ, thuế 1,5%.
 - Nếu có shop thật: đối chiếu 3–5 đơn trong sao kê tài chính của sàn với phiếu của tool — khớp trong ±1.000đ mới đạt.
+- Link **"Góp ý cho tool"** ở footer đang là placeholder (`href="#"` trong `src/components/Footer.tsx`) — thay bằng link Zalo/Facebook của bạn trước khi quảng bá.
 
 ## Công thức tính
 
@@ -77,12 +78,12 @@ Ký hiệu: `P` giá bán, `C` giá vốn, `G` đóng gói/đơn, `h` % đơn ho
 
 - Từng phí %: `phí_i = min(P × rate_i, cap_i)` (nếu có trần). Dự phòng hoàn: `R = h × H`.
 - **Tiền về tay** `= P − Σphí_% − Σphí_flat − P×t − C − G − R`; % lãi ròng = tiền về tay ÷ P.
-- **Tính ngược** (có trần nên giải lặp): vòng 1 bỏ trần `P = (C+G+R+Σflat) / (1 − Σrate − t − m)`; phí nào `P×rate > cap` thì cố định bằng trần, chuyển sang tử số, loại khỏi mẫu số, giải lại (tối đa 3 vòng). Kết quả làm tròn **LÊN** bội 500đ.
-- Mẫu số ≤ 0 → mức lãi bất khả thi, tool báo rõ tổng phí + thuế đang chiếm bao nhiêu % giá bán.
+- **Tính ngược** (có trần nên giải lặp): mỗi vòng giả định một tập phí đang kịch trần (phí kịch trần thành hằng số), giải `P = (C+G+R+Σflat+Σtrần) / (1 − Σrate_chưa_trần − t − m)`, rồi đối chiếu lại tập trần theo P vừa giải tới khi ổn định — nhờ vậy giá trả về là **tối thiểu** kể cả ca 2 phí cùng vượt trần. Kết quả làm tròn **LÊN** bội 500đ, kiểm chứng lần cuối bằng chính phiếu bóc tách.
+- **Bất khả thi** chỉ khi các phí **không có trần** + thuế đã chiếm ≥ (100% − m) giá bán — phí có trần ngừng ăn % khi giá đủ lớn nên không tính vào giới hạn này. Tool báo rõ mức trần lãi có thể đạt.
 
-Toàn bộ nằm trong [`src/lib/calc.ts`](src/lib/calc.ts), có 21 unit test với số kỳ vọng tính tay ([`src/lib/calc.test.ts`](src/lib/calc.test.ts)).
+Toàn bộ nằm trong [`src/lib/calc.ts`](src/lib/calc.ts), có unit test với số kỳ vọng tính tay ([`src/lib/calc.test.ts`](src/lib/calc.test.ts)).
 
-> Ghi chú: ca kiểm thử "lãi mục tiêu 60% phải báo bất khả thi" trong spec gốc không khớp số học với chính công thức của spec — với biểu phí seed, 60% vẫn cho giá hợp lệ (~646.000đ); bất khả thi chỉ xảy ra từ ~79,5% trở lên (đủ gói). Test dùng m = 85% cho nhánh bất khả thi và giữ ca 60% làm ca "giá cao nhưng khả thi".
+> Ghi chú: ca kiểm thử "lãi mục tiêu 60% phải báo bất khả thi" trong spec gốc không khớp số học với chính công thức của spec — với biểu phí seed (phí không trần 10% + thuế 1,5%), lãi ròng có thể tiến sát **88,5%**: ca 60% ra ~646.000đ, ca 85% vẫn khả thi ở giá rất cao (~6,17 triệu, 2 gói kịch trần). Test dùng m = 89% cho nhánh bất khả thi.
 
 ## Lý do chọn thiết kế
 

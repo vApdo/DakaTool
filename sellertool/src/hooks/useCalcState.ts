@@ -70,8 +70,19 @@ export function calcFormReducer(state: CalcFormState, action: CalcFormAction): C
         manualRatesPct: {},
       }
     }
-    case "set_category":
-      return { ...state, categoryId: action.categoryId }
+    case "set_category": {
+      if (action.categoryId === state.categoryId) return state
+      // % nhập tay cho phí THEO NGÀNH thuộc về ngành cũ — xóa khi đổi ngành,
+      // kẻo biên lai ngành mới âm thầm tính bằng % của ngành trước.
+      const platform = FEES.platforms.find((p) => p.id === state.platformId)
+      const byCategoryFeeIds = new Set(
+        (platform?.fees ?? []).filter((f) => f.type === "percent_by_category").map((f) => f.id),
+      )
+      const manualRatesPct = Object.fromEntries(
+        Object.entries(state.manualRatesPct).filter(([feeId]) => !byCategoryFeeIds.has(feeId)),
+      )
+      return { ...state, categoryId: action.categoryId, manualRatesPct }
+    }
     case "set_field":
       return { ...state, [action.field]: action.value }
     case "toggle_fee": {

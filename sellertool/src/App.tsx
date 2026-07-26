@@ -27,9 +27,10 @@ export default function App() {
     platformId: state.platformId,
     categoryId: state.categoryId,
     enabledOptionalFeeIds: state.enabledOptionalFeeIds,
+    // 0% là giá trị hợp lệ (phí được miễn) — chỉ ô còn trống (null) mới bị loại.
     manualRates: Object.fromEntries(
       Object.entries(state.manualRatesPct).flatMap(([feeId, pct]) =>
-        pct !== null && pct > 0 ? [[feeId, pct / 100]] : [],
+        pct !== null && pct >= 0 ? [[feeId, pct / 100]] : [],
       ),
     ),
     packagingCost: state.packagingCost ?? 0,
@@ -133,13 +134,9 @@ export default function App() {
         <FeeForm state={state} dispatch={dispatch} />
       </main>
 
-      <section
-        className="app-receipt"
-        id="calc-panel"
-        role="tabpanel"
-        aria-labelledby={`tab-${state.mode}`}
-        aria-live="polite"
-      >
+      {/* Không đặt aria-live lên cả panel: kết quả đổi theo TỪNG phím gõ, máy đọc
+          màn hình sẽ đọc lại hàng chục dòng phí sau mỗi ký tự — nhiễu thay vì hỗ trợ. */}
+      <section className="app-receipt" id="calc-panel" role="tabpanel" aria-labelledby={`tab-${state.mode}`}>
         {panel}
         <SaveReceiptButton targetRef={receiptRef} disabled={!hasReceipt} />
       </section>

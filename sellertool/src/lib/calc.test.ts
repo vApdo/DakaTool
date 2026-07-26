@@ -74,6 +74,14 @@ describe("breakdown — chế độ 1", () => {
     expect(r.missingRateFeeIds).toEqual(["phi_co_dinh"])
   })
 
+  it("nhập 0% là giá trị hợp lệ (phí được miễn) — không bị coi là chưa nhập", () => {
+    const r = breakdown({ ...BASE, manualRates: { phi_co_dinh: 0 }, costPrice: 120000, sellPrice: 200000 }, FEES)
+    expect(r.missingRateFeeIds).toEqual([])
+    expect(r.lines.find((l) => l.id === "phi_co_dinh")?.amount).toBe(0)
+    // payout = ca #1 nhưng không mất 8.000đ phí cố định
+    expect(r.payout).toBe(59100)
+  })
+
   it("giá bán thấp hơn giá vốn vẫn tính nhưng kèm cảnh báo", () => {
     const r = breakdown({ ...BASE, costPrice: 300000, sellPrice: 200000 }, FEES)
     expect(r.status).toBe("lo")
@@ -106,7 +114,7 @@ describe("reversePrice — chế độ 2", () => {
     expect(r.receipt!.netMarginPct).toBeGreaterThanOrEqual(0.25)
   })
 
-  it("8. bất khả thi: lãi 85% với đủ 2 gói → báo tổng phí + thuế chiếm 20,5%", () => {
+  it("8. lãi 85% với đủ 2 gói VẪN KHẢ THI: phí kịch trần ngừng ăn % khi giá đủ lớn", () => {
     const r = reversePrice(
       {
         ...BASE,
@@ -116,14 +124,65 @@ describe("reversePrice — chế độ 2", () => {
       },
       FEES,
     )
+    expect(r.ok).toBe(true)
+    // Cả 2 gói kịch trần (40k + 50k thành hằng số): (125.900+90.000)/(1−0,10−0,015−0,85)
+    // = 215.900/0,035 = 6.168.571 → LÊN bội 500
+    expect(r.price).toBe(6169000)
+    expect(r.receipt!.lines.find((l) => l.id === "freeship_xtra")?.capped).toBe(true)
+    expect(r.receipt!.lines.find((l) => l.id === "voucher_xtra")?.capped).toBe(true)
+    expect(r.receipt!.netMarginPct).toBeGreaterThanOrEqual(0.85)
+  })
+
+  it("9. bất khả thi thật: lãi 89% — các phí KHÔNG trần + thuế đã chiếm 11,5%", () => {
+    const r = reversePrice(
+      {
+        ...BASE,
+        enabledOptionalFeeIds: ["freeship_xtra", "voucher_xtra"],
+        costPrice: 120000,
+        targetMargin: 0.89,
+      },
+      FEES,
+    )
+    // 1 − (0,06 + 0,04) − 0,015 = 0,885 < 0,89 → không giá nào đạt được.
     expect(r.ok).toBe(false)
     expect(r.error?.code).toBe("infeasible")
-    expect(r.error?.message).toContain("20,5%")
+    expect(r.error?.message).toContain("11,5%")
+    expect(r.error?.message).toContain("88,5%")
+  })
+
+  it("10. giá TỐI THIỂU khi 2 phí cùng vượt trần ở vòng 1 rồi giá giải lại tụt xuống dưới trần phí nhỏ", () => {
+    // Ca bắt lỗi từ review: nếu giữ cứng cả 2 phí ở trần, tool trả 1.220.000đ —
+    // cao hơn giá tối thiểu thật 1.218.000đ (tại đó Voucher Xtra chưa chạm trần).
+    const r = reversePrice(
+      {
+        ...BASE,
+        enabledOptionalFeeIds: ["freeship_xtra", "voucher_xtra"],
+        packagingCost: 2900,
+        returnRate: 0,
+        costPrice: 617800,
+        targetMargin: 0.3,
+      },
+      FEES,
+    )
+    expect(r.ok).toBe(true)
+    expect(r.price).toBe(1218000)
+    const voucher = r.receipt!.lines.find((l) => l.id === "voucher_xtra")
+    expect(voucher?.capped).toBe(false) // 4% × 1.218.000 = 48.720 < trần 50.000
+    expect(r.receipt!.netMarginPct).toBeGreaterThanOrEqual(0.3)
+  })
+
+  it("11. lãi mục tiêu 0% hợp lệ — trả về giá hòa vốn tối thiểu", () => {
+    const r = reversePrice({ ...BASE, costPrice: 120000, targetMargin: 0 }, FEES)
+    expect(r.ok).toBe(true)
+    // 125.900 / (1 − 0,10 − 0,015) = 142.260 → LÊN bội 500
+    expect(r.price).toBe(142500)
+    expect(r.receipt!.payout).toBeGreaterThanOrEqual(0)
   })
 
   it("input không hợp lệ bị chặn bằng thông báo tiếng Việt", () => {
     expect(reversePrice({ ...BASE, costPrice: 0, targetMargin: 0.2 }, FEES).error?.code).toBe("invalid_input")
     expect(reversePrice({ ...BASE, costPrice: 120000, targetMargin: 1.2 }, FEES).error?.code).toBe("invalid_input")
+    expect(reversePrice({ ...BASE, costPrice: 120000, targetMargin: -0.1 }, FEES).error?.code).toBe("invalid_input")
     const missing = reversePrice({ ...BASE, manualRates: {}, costPrice: 120000, targetMargin: 0.2 }, FEES)
     expect(missing.error?.code).toBe("invalid_input")
     expect(missing.error?.message).toContain("Phí cố định theo ngành hàng")
