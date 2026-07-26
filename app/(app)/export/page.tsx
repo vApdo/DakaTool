@@ -2,7 +2,7 @@ import Link from "next/link"
 import { FileSpreadsheet, FileText, FileJson, ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 
-export const metadata = { title: "Export kết quả - DakaTool" }
+export const metadata = { title: "Export kết quả" }
 
 const formats = [
   { name: "Excel (.xlsx)", description: "Bảng kết quả đầy đủ, mỗi lần chạy một sheet.", icon: FileSpreadsheet },

@@ -8,8 +8,8 @@ import { classifyPdf } from "@/lib/pdf/classify-pdf"
 import { extractHbl } from "@/lib/pdf/extract-hbl"
 import { PDF_LIMITS } from "@/lib/pdf/limits"
 import { HBL_FIELD_ORDER, type HblExtractionResult } from "@/lib/pdf/types"
-import { recordRun } from "@/lib/run-history"
-import { PdfUpload } from "./pdf-upload"
+import { recordFinishedRun } from "@/lib/run-history"
+import { FileDropZone } from "../pdf/file-drop-zone"
 import { PdfPreview } from "./pdf-preview"
 import { ExtractionStatus, type ExtractionState } from "./extraction-status"
 import { HblExtractionForm } from "./hbl-extraction-form"
@@ -27,10 +27,8 @@ export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
   const processedFileName = useRef("")
 
   function finishRun(status: "success" | "failed", summary: string) {
-    const duration =
-      runStartedAt.current !== null ? Math.max(1, Math.round((Date.now() - runStartedAt.current) / 1000)) : null
+    recordFinishedRun({ toolId: tool.id, toolName: tool.name, status, startedAtMs: runStartedAt.current, summary })
     runStartedAt.current = null
-    recordRun({ toolId: tool.id, toolName: tool.name, status, durationSeconds: duration, summary })
   }
   const [pdf, setPdf] = useState<LoadedPdf | null>(null)
   const [fileName, setFileName] = useState("")
@@ -186,7 +184,11 @@ export function HblPdfExtractorRunner({ tool }: { tool: Tool }) {
           <PdfPreview pdf={pdf} fileName={fileName} onClear={handleClear} />
         ) : (
           <div className="card p-6">
-            <PdfUpload onFile={handleFile} />
+            <FileDropZone
+              accept="application/pdf,.pdf"
+              title="Kéo thả file PDF vào đây"
+              onFiles={([file]) => handleFile(file)}
+            />
           </div>
         )}
       </div>

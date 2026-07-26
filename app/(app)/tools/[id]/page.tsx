@@ -11,6 +11,11 @@ export function generateStaticParams() {
   return tools.map((t) => ({ id: t.id }))
 }
 
+export function generateMetadata({ params }: { params: { id: string } }) {
+  const tool = getToolById(params.id)
+  return { title: tool ? tool.name : "Không tìm thấy tool" }
+}
+
 export default function ToolRunPage({ params }: { params: { id: string } }) {
   const tool = getToolById(params.id)
   if (!tool) notFound()

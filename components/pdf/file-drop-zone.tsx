@@ -74,8 +74,9 @@ export function FileDropZone({
         <div>
           <p className="font-medium text-black dark:text-white">{title}</p>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {subtitle ?? "hoặc bấm để chọn file"} · tối đa {PDF_LIMITS.maxFiles} file ·{" "}
-            {formatBytes(PDF_LIMITS.maxSingleBytes)}/file · xử lý ngay trên máy bạn, không tải lên đâu cả
+            {subtitle ?? "hoặc bấm để chọn file"}
+            {multiple ? ` · tối đa ${PDF_LIMITS.maxFiles} file` : ""} · {formatBytes(PDF_LIMITS.maxSingleBytes)}/file
+            · xử lý ngay trên máy bạn, không tải lên đâu cả
           </p>
         </div>
       </div>

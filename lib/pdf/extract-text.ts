@@ -1,6 +1,7 @@
 "use client"
 
 import type { PageText } from "./types"
+import { pageTextFromTextContent } from "./page-text"
 
 /**
  * Đọc text layer của PDF trong TRÌNH DUYỆT bằng pdfjs-dist.
@@ -50,14 +51,7 @@ export async function loadPdf(data: ArrayBuffer): Promise<LoadedPdf> {
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i)
     const content = await page.getTextContent()
-    pages.push({
-      pageNumber: i,
-      items: content.items.flatMap((item) =>
-        "str" in item
-          ? [{ text: item.str, x: item.transform[4], y: item.transform[5], width: item.width }]
-          : [],
-      ),
-    })
+    pages.push(pageTextFromTextContent(content, i))
   }
 
   let renderTask: { cancel(): void } | null = null

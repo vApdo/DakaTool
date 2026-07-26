@@ -1,12 +1,7 @@
 import type { Config } from "tailwindcss"
 
 const config: Config = {
-  content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "*.{js,ts,jsx,tsx,mdx}",
-  ],
+  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   darkMode: ["class"],
   theme: {
     extend: {
@@ -45,42 +40,6 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      typography: {
-        DEFAULT: {
-          css: {
-            maxWidth: "65ch",
-            color: "var(--foreground)",
-            a: {
-              color: "var(--primary)",
-              "&:hover": {
-                color: "var(--primary)",
-              },
-            },
-            h1: {
-              color: "var(--foreground)",
-            },
-            h2: {
-              color: "var(--foreground)",
-            },
-            h3: {
-              color: "var(--foreground)",
-            },
-            h4: {
-              color: "var(--foreground)",
-            },
-            blockquote: {
-              borderLeftColor: "var(--primary)",
-            },
-            code: {
-              color: "var(--foreground)",
-            },
-            "pre code": {
-              color: "var(--foreground)",
-              backgroundColor: "transparent",
-            },
-          },
-        },
-      },
       gridTemplateColumns: {
         // Complex grid layouts
         "bento-1": "repeat(4, minmax(0, 1fr))",
@@ -91,7 +50,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("@tailwindcss/typography"), require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate")],
 }
 
 export default config

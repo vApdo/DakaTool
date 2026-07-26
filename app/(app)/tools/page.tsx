@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/page-header"
 import { ToolList } from "@/components/tool-list"
 import { tools } from "@/lib/data"
 
-export const metadata = { title: "Danh sách Tool - DakaTool" }
+export const metadata = { title: "Danh sách Tool" }
 
 export default function ToolsPage() {
   return (

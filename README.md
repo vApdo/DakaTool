@@ -65,17 +65,19 @@ Gửi email báo cáo, Theo dõi giá sản phẩm, Nén ảnh hàng loạt, Đ�
 ## Kiến trúc
 
 - **Next.js 14 App Router + React 18 + TypeScript + Tailwind CSS**, deploy trên Vercel.
-- Logic PDF tách khỏi UI ở `lib/pdf/` (`extract-text`, `classify-pdf`, `extract-hbl`,
-  `normalize-fields`, `edit`, `limits`, `ocr-provider`, `ocr-tesseract`).
+- Logic PDF tách khỏi UI ở `lib/pdf/` (`extract-text`, `page-text`, `classify-pdf`, `extract-hbl`,
+  `normalize-fields`, `edit`, `limits`, `page-ranges`, `ocr-provider`, `ocr-tesseract`, `types`).
 - Mỗi tool có runner riêng qua registry `components/tool-runner-registry.tsx`; tool chưa có
-  runner thật dùng `ToolRunner` mô phỏng.
+  runner thật dùng `ToolRunner` mô phỏng. Runner PDF chung ở `components/pdf/`, bộ trích xuất
+  HBL ở `components/hbl/`.
 - Asset OCR tự host ở `public/ocr/`, bộ giải mã ảnh pdf.js ở `public/pdfjs/` — không dùng CDN ngoài.
 - Khu vực app dùng route group `app/(app)/` với sidebar chung; homepage nằm ngoài.
 
 ## Test & CI
 
-- Unit test ở `test/pdf/`. Fixture PDF được **dựng trong test bằng pdf-lib** (`test/pdf/fixtures.ts`,
-  dữ liệu giả lập, không phải chứng từ thật) nên `npm test` chạy được ngay trên repo clone sạch.
+- Unit test ở `test/` (logic PDF trong `test/pdf/`). Fixture PDF được **dựng trong test bằng pdf-lib**
+  (`test/pdf/fixtures.ts`, dữ liệu giả lập, không phải chứng từ thật) nên `npm test` chạy được ngay
+  trên repo clone sạch.
 - GitHub Actions (`.github/workflows/ci.yml`) chạy khi push nhánh phụ hoặc PR vào `main`:
   `npm ci` → `tsc --noEmit` → `npm test` → `npm run build`.
 

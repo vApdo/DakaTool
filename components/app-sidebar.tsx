@@ -3,24 +3,8 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import {
-  LayoutDashboard,
-  Wrench,
-  PlusCircle,
-  LayoutTemplate,
-  History,
-  Download,
-} from "lucide-react"
+import { navItems, isNavItemActive } from "@/lib/navigation"
 import { ThemeToggle } from "./theme-toggle"
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tools", label: "Danh sách Tool", icon: Wrench },
-  { href: "/tools/new", label: "Tạo Tool mới", icon: PlusCircle },
-  { href: "/templates", label: "Thư viện Template", icon: LayoutTemplate },
-  { href: "/history", label: "Lịch sử chạy", icon: History },
-  { href: "/export", label: "Export kết quả", icon: Download },
-]
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -36,10 +20,7 @@ export function AppSidebar() {
 
       <nav className="flex-1 space-y-1 px-3" aria-label="Điều hướng chính">
         {navItems.map((item) => {
-          const active =
-            item.href === "/tools"
-              ? pathname === "/tools" || (pathname.startsWith("/tools/") && pathname !== "/tools/new")
-              : pathname === item.href
+          const active = isNavItemActive(pathname, item.href)
           return (
             <Link
               key={item.href}

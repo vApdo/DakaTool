@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/page-header"
 import { ToolIcon } from "@/components/tool-icon"
 import { templates } from "@/lib/data"
 
-export const metadata = { title: "Thư viện Template - DakaTool" }
+export const metadata = { title: "Thư viện Template" }
 
 export default function TemplatesPage() {
   return (

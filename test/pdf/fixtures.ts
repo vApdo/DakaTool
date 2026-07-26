@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib"
-import type { PageText, PositionedItem } from "@/lib/pdf/types"
+import type { PageText } from "@/lib/pdf/types"
+import { pageTextFromTextContent } from "@/lib/pdf/page-text"
 
 /**
  * Fixture PDF GIẢ LẬP cho test — KHÔNG dùng chứng từ thật của khách hàng.
@@ -121,14 +122,8 @@ export async function loadPagesFromPdfBytes(bytes: Uint8Array): Promise<PageText
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i)
     const content = await page.getTextContent()
-    pages.push({
-      pageNumber: i,
-      items: content.items.flatMap((item): PositionedItem[] =>
-        "str" in item
-          ? [{ text: item.str, x: item.transform[4], y: item.transform[5], width: item.width }]
-          : [],
-      ),
-    })
+    // Dùng chung bước mapping với extract-text.ts — test đi qua đúng code production.
+    pages.push(pageTextFromTextContent(content, i))
   }
   await loadingTask.destroy()
   return pages

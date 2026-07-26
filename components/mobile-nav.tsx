@@ -3,17 +3,8 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Wrench, PlusCircle, LayoutTemplate, History, Download } from "lucide-react"
+import { navItems, isNavItemActive } from "@/lib/navigation"
 import { ThemeToggle } from "./theme-toggle"
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tools", label: "Tool", icon: Wrench },
-  { href: "/tools/new", label: "Tạo mới", icon: PlusCircle },
-  { href: "/templates", label: "Template", icon: LayoutTemplate },
-  { href: "/history", label: "Lịch sử", icon: History },
-  { href: "/export", label: "Export", icon: Download },
-]
 
 export function MobileNav() {
   const pathname = usePathname()
@@ -31,10 +22,7 @@ export function MobileNav() {
       </div>
       <nav className="flex gap-1 overflow-x-auto px-2 pb-2" aria-label="Điều hướng chính">
         {navItems.map((item) => {
-          const active =
-            item.href === "/tools"
-              ? pathname === "/tools" || (pathname.startsWith("/tools/") && pathname !== "/tools/new")
-              : pathname === item.href
+          const active = isNavItemActive(pathname, item.href)
           return (
             <Link
               key={item.href}
@@ -47,7 +35,7 @@ export function MobileNav() {
               }`}
             >
               <item.icon className="h-3.5 w-3.5" />
-              {item.label}
+              {item.shortLabel}
             </Link>
           )
         })}

@@ -5,7 +5,10 @@ import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "DakaTool - Nền tảng tool tự động hóa nội bộ",
+  title: {
+    default: "DakaTool - Nền tảng tool tự động hóa nội bộ",
+    template: "%s - DakaTool",
+  },
   description:
     "DakaTool giúp bạn tạo, quản lý và chạy các tool tự động hóa công việc hằng ngày — dùng nội bộ, không cần code lại từ đầu.",
 }

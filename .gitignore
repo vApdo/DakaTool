@@ -24,7 +24,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # claude/impeccable local (machine-specific)
 .claude/settings.local.json

@@ -3,7 +3,7 @@ import { Download } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { RunHistoryTable } from "@/components/run-history-table"
 
-export const metadata = { title: "Lịch sử chạy - DakaTool" }
+export const metadata = { title: "Lịch sử chạy" }
 
 export default function HistoryPage() {
   return (

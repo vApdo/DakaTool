@@ -57,6 +57,18 @@ export function recordRun(input: RunInput) {
   writeAll([record, ...readAll()].slice(0, MAX_RECORDS))
 }
 
+/**
+ * Ghi một lần chạy đã kết thúc, tự tính thời lượng từ mốc bắt đầu (Date.now() lúc start).
+ * Dùng chung cho mọi runner để công thức làm tròn thời lượng chỉ tồn tại một chỗ.
+ */
+export function recordFinishedRun(input: Omit<RunInput, "durationSeconds"> & { startedAtMs: number | null }) {
+  const { startedAtMs, ...rest } = input
+  recordRun({
+    ...rest,
+    durationSeconds: startedAtMs !== null ? Math.max(1, Math.round((Date.now() - startedAtMs) / 1000)) : null,
+  })
+}
+
 /** Xóa toàn bộ lịch sử chạy trên trình duyệt này. */
 export function clearRunHistory() {
   writeAll([])

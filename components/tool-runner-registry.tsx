@@ -1,7 +1,7 @@
 import type { ComponentType } from "react"
 import type { Tool } from "@/lib/types"
 import { ToolRunner } from "./tool-runner"
-import { HblPdfExtractorRunner } from "./hbl-pdf-extractor-runner"
+import { HblPdfExtractorRunner } from "./hbl/hbl-pdf-extractor-runner"
 import { PdfMergeRunner } from "./pdf/pdf-merge-runner"
 import { PdfSplitRunner } from "./pdf/pdf-split-runner"
 import { PdfOrganizeRunner } from "./pdf/pdf-organize-runner"
@@ -35,4 +35,9 @@ export function getToolRunner(toolId: string): ComponentType<{ tool: Tool }> {
 /** Tool có runner thật thì trang chi tiết dùng layout toàn chiều rộng. */
 export function hasCustomRunner(toolId: string): boolean {
   return toolId in toolRunnerRegistry
+}
+
+/** Danh sách tool id có runner thật — để test giữ registry đồng bộ với status trong lib/data. */
+export function getCustomRunnerToolIds(): string[] {
+  return Object.keys(toolRunnerRegistry)
 }

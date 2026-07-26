@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react"
 import type { Tool } from "@/lib/types"
-import { recordRun } from "@/lib/run-history"
+import { recordFinishedRun } from "@/lib/run-history"
 import type { SimpleRunState } from "./run-status"
 
 /**
@@ -20,16 +20,14 @@ export function useToolRunState(tool: Tool): [SimpleRunState, (next: SimpleRunSt
         startedAt.current = Date.now()
       }
       if (next.step === "done" || next.step === "error") {
-        const duration =
-          startedAt.current !== null ? Math.max(1, Math.round((Date.now() - startedAt.current) / 1000)) : null
-        startedAt.current = null
-        recordRun({
+        recordFinishedRun({
           toolId: tool.id,
           toolName: tool.name,
           status: next.step === "done" ? "success" : "failed",
-          durationSeconds: duration,
+          startedAtMs: startedAt.current,
           summary: next.message,
         })
+        startedAt.current = null
       }
       if (next.step === "idle") startedAt.current = null
       setStateRaw(next)

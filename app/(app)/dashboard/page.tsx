@@ -3,7 +3,7 @@ import { PlusCircle } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { DashboardContent } from "@/components/dashboard-content"
 
-export const metadata = { title: "Dashboard - DakaTool" }
+export const metadata = { title: "Dashboard" }
 
 export default function DashboardPage() {
   return (

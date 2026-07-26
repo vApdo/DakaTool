@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/page-header"
 import { ToolCreateForm } from "@/components/tool-create-form"
 
-export const metadata = { title: "Tạo Tool mới - DakaTool" }
+export const metadata = { title: "Tạo Tool mới" }
 
 export default function NewToolPage() {
   return (
