@@ -1,8 +1,21 @@
 import type { Tool, Template, ToolCategory } from "./types"
 
-export const CATEGORIES: ToolCategory[] = ["PDF", "File", "Dữ liệu", "Email", "Web", "Báo cáo", "Chứng từ"]
+export const CATEGORIES: ToolCategory[] = ["PDF", "File", "Dữ liệu", "Email", "Web", "Báo cáo", "Chứng từ", "Video & Content"]
 
 export const tools: Tool[] = [
+  {
+    id: "auto-subtitle",
+    name: "Tự động ghép phụ đề",
+    description:
+      "Tải video lên, hệ thống tự nhận dạng giọng nói (faster-whisper), tạo phụ đề theo dòng dễ đọc, cho phép chỉnh sửa từng câu và tùy biến kiểu chữ, rồi xuất phụ đề SRT/VTT/ASS hoặc ghép cứng phụ đề vào video MP4.",
+    category: "Video & Content",
+    icon: "Captions",
+    status: "active",
+    runsCount: 0,
+    lastRunAt: null,
+    inputs: [{ name: "file", label: "File video (.mp4/.mov/.webm/.mkv)", type: "file", required: true }],
+    tags: ["video", "phụ đề", "subtitle", "whisper", "srt", "ass"],
+  },
   {
     id: "hbl-pdf-extractor",
     name: "Trích xuất dữ liệu HBL từ PDF",

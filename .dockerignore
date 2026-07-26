@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+data
+models
+npm-debug.log*
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+test/fixtures/*.pdf
+services/subtitle-engine/**/__pycache__
+services/subtitle-engine/.pytest_cache
+**/*.pyc
+.claude
+.impeccable
