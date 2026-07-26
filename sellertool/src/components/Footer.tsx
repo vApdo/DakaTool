@@ -11,7 +11,8 @@ export function Footer({ lastUpdated }: FooterProps) {
       </p>
       <p>
         Biểu phí cập nhật: {lastUpdated} · Mọi con số tính ngay trên máy bạn — không gửi đi đâu ·{" "}
-        <a href="#gop-y">Góp ý cho tool</a>
+        {/* Placeholder theo spec — thay href bằng link Zalo/Facebook của bạn trước khi quảng bá (xem README). */}
+        <a href="#">Góp ý cho tool</a>
       </p>
     </footer>
   )

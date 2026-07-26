@@ -32,6 +32,18 @@ function caretFromDigits(text: string, digitCount: number): number {
 export function CurrencyInput({ id, label, value, onChange, quickAdds, placeholder, hint }: CurrencyInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    // Delete (xóa xuôi) ngay trước dấu chấm phân nhóm: trình duyệt xóa dấu chấm,
+    // handler format lại sẽ trả dấu chấm về chỗ cũ → no-op vĩnh viễn. Nhảy caret
+    // qua dấu chấm trước để phím Delete mặc định xóa được chữ số phía sau.
+    if (e.key !== "Delete") return
+    const el = e.currentTarget
+    const pos = el.selectionStart
+    if (pos !== null && pos === el.selectionEnd && el.value[pos] === ".") {
+      el.setSelectionRange(pos + 1, pos + 1)
+    }
+  }
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const el = e.target
     const digitsBeforeCaret = el.value.slice(0, el.selectionStart ?? el.value.length).replace(/\D/g, "").length
@@ -62,6 +74,7 @@ export function CurrencyInput({ id, label, value, onChange, quickAdds, placehold
           placeholder={placeholder ?? "0"}
           value={value === null ? "" : groupDigits(value)}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
         />
         <span className="input-suffix" aria-hidden="true">
           đ

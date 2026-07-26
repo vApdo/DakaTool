@@ -152,7 +152,7 @@ export function FeeForm({ state, dispatch }: FeeFormProps) {
       <section className="form-section" aria-label="Thuế">
         <ToggleRow
           label="Tôi là hộ/cá nhân kinh doanh"
-          sublabel={`Sàn khấu trừ ${formatPercent(FEES.tax.rate)} doanh thu (1% GTGT + 0,5% TNCN)`}
+          sublabel={`${FEES.tax.label} — sàn khấu trừ ${formatPercent(FEES.tax.rate)} doanh thu`}
           checked={state.taxEnabled}
           onChange={() => dispatch({ type: "toggle_tax" })}
         />
