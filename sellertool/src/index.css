@@ -1,0 +1,519 @@
+/*
+ * Tính Lãi Thật — design tokens.
+ *
+ * Palette "quầy thu ngân chợ Việt" (lý do đầy đủ trong README):
+ * - nền quầy:  xanh rêu sâu của tờ 100.000đ / bàn quầy thu ngân
+ * - giấy nhiệt: trắng ngà của cuộn giấy in bill
+ * - mực nhiệt:  đen mềm của mực in nhiệt (không đen tuyệt đối)
+ * - đỏ mộc:     đỏ dấu mộc trên hóa đơn — trạng thái LỖ, cảnh báo
+ * - vàng nghệ:  vàng tiệm vàng — hành động chính, điểm nhấn
+ */
+:root {
+  --nen-quay: #12403a;
+  --nen-quay-dam: #0c2e2a;
+  --giay-nhiet: #f7f4ed;
+  --muc-nhiet: #221e1a;
+  --muc-mo: rgba(34, 30, 26, 0.6);
+  --do-moc: #be3a34;
+  --vang-nghe: #e9a13b;
+  --xanh-lai: #1b7a4e;
+  --trang-chu: #f2efe7;
+  --trang-mo: rgba(242, 239, 231, 0.68);
+  --vien-toi: rgba(242, 239, 231, 0.16);
+  --o-toi: rgba(12, 46, 42, 0.55);
+
+  --font-display: "Paytone One", "Be Vietnam Pro", sans-serif;
+  --font-body: "Be Vietnam Pro", "Segoe UI", sans-serif;
+  --font-mono: "Space Mono", "Courier New", monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--trang-chu);
+  background-color: var(--nen-quay);
+  background-image: linear-gradient(to bottom, var(--nen-quay), var(--nen-quay-dam) 90%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+input,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--vang-nghe);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------- Khung trang ---------- */
+
+.app {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+@media (min-width: 900px) {
+  .app {
+    max-width: 920px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    column-gap: 40px;
+    grid-template-areas:
+      "header header"
+      "form receipt"
+      "footer footer";
+    align-items: start;
+  }
+
+  .app-header {
+    grid-area: header;
+  }
+
+  .app-form {
+    grid-area: form;
+  }
+
+  .app-receipt {
+    grid-area: receipt;
+    position: sticky;
+    top: 20px;
+  }
+
+  .app-footer {
+    grid-area: footer;
+  }
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  margin-bottom: 20px;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.7rem, 7vw, 2.2rem);
+  line-height: 1.15;
+  color: var(--trang-chu);
+  letter-spacing: 0.01em;
+}
+
+.brand .brand-accent {
+  color: var(--vang-nghe);
+}
+
+.tagline {
+  margin-top: 6px;
+  color: var(--trang-mo);
+  font-size: 0.95rem;
+  max-width: 46ch;
+}
+
+.fees-updated {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--vien-toi);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: var(--trang-mo);
+  background: var(--o-toi);
+}
+
+/* ---------- Tabs 2 chế độ ---------- */
+
+.mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--o-toi);
+  border: 1px solid var(--vien-toi);
+  margin-bottom: 20px;
+}
+
+.mode-tab {
+  padding: 11px 8px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--trang-mo);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.mode-tab[aria-selected="true"] {
+  background: var(--giay-nhiet);
+  color: var(--muc-nhiet);
+}
+
+/* ---------- Form ---------- */
+
+.form-section {
+  margin-bottom: 22px;
+}
+
+.form-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--trang-mo);
+  margin-bottom: 10px;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.field-hint {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--trang-mo);
+  margin-top: 4px;
+}
+
+.field-error {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--vang-nghe);
+  margin-top: 4px;
+}
+
+.text-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--vien-toi);
+  background: var(--giay-nhiet);
+  color: var(--muc-nhiet);
+  font-size: 1.05rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.text-input::placeholder {
+  color: rgba(34, 30, 26, 0.35);
+}
+
+.text-input:focus {
+  outline: 3px solid var(--vang-nghe);
+  outline-offset: 1px;
+}
+
+.input-affix {
+  position: relative;
+}
+
+.input-affix .text-input {
+  padding-right: 42px;
+}
+
+.input-suffix {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muc-mo);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.quick-adds {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.quick-add {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--vang-nghe);
+  color: var(--vang-nghe);
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.quick-add:active {
+  background: var(--vang-nghe);
+  color: var(--muc-nhiet);
+}
+
+/* Segmented control chọn sàn */
+
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--o-toi);
+  border: 1px solid var(--vien-toi);
+}
+
+.segmented-option {
+  padding: 10px 8px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--trang-mo);
+  text-align: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.segmented-option[aria-pressed="true"] {
+  background: var(--giay-nhiet);
+  color: var(--muc-nhiet);
+}
+
+.select-wrap {
+  position: relative;
+}
+
+.select-wrap select {
+  width: 100%;
+  appearance: none;
+  padding: 12px 40px 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--vien-toi);
+  background: var(--giay-nhiet);
+  color: var(--muc-nhiet);
+  font-size: 1rem;
+}
+
+.select-wrap::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muc-mo);
+  border-bottom: 2px solid var(--muc-mo);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+/* Toggle */
+
+.toggle-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 0;
+  text-align: left;
+  border-bottom: 1px solid var(--vien-toi);
+}
+
+.toggle-row:last-child {
+  border-bottom: 0;
+}
+
+.toggle-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toggle-sub {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--trang-mo);
+  margin-top: 2px;
+}
+
+.toggle-track {
+  flex-shrink: 0;
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--o-toi);
+  border: 1px solid var(--vien-toi);
+  position: relative;
+  transition: background-color 0.15s ease;
+  margin-top: 2px;
+}
+
+.toggle-row[aria-checked="true"] .toggle-track {
+  background: var(--vang-nghe);
+  border-color: var(--vang-nghe);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--giay-nhiet);
+  transition: transform 0.15s ease;
+}
+
+.toggle-row[aria-checked="true"] .toggle-thumb {
+  transform: translateX(20px);
+}
+
+/* Chi phí khác — thu gọn */
+
+details.extra-costs {
+  border: 1px solid var(--vien-toi);
+  border-radius: 12px;
+  background: var(--o-toi);
+}
+
+details.extra-costs summary {
+  list-style: none;
+  padding: 13px 14px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+details.extra-costs summary::-webkit-details-marker {
+  display: none;
+}
+
+details.extra-costs summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--trang-mo);
+  border-bottom: 2px solid var(--trang-mo);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+details.extra-costs[open] summary::after {
+  transform: rotate(-135deg);
+}
+
+details.extra-costs .extra-costs-body {
+  padding: 2px 14px 14px;
+}
+
+/* ---------- Nút hành động ---------- */
+
+.btn-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--vang-nghe);
+  color: var(--muc-nhiet);
+  font-weight: 700;
+  font-size: 1rem;
+  transition: filter 0.15s ease;
+}
+
+.btn-save:hover {
+  filter: brightness(1.06);
+}
+
+.btn-save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.save-status {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--trang-mo);
+  text-align: center;
+  min-height: 1.3em;
+}
+
+/* ---------- Footer ---------- */
+
+.app-footer {
+  margin-top: 36px;
+  padding-top: 16px;
+  border-top: 1px solid var(--vien-toi);
+  font-size: 0.8rem;
+  color: var(--trang-mo);
+  display: grid;
+  gap: 6px;
+}
+
+.app-footer a {
+  color: var(--vang-nghe);
+}
+
+/* ---------- Giảm chuyển động ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

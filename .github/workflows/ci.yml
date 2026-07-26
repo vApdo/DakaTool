@@ -36,3 +36,32 @@ jobs:
 
       # Lint CHƯA đưa vào CI: `next lint` chưa được cấu hình ESLint trong repo
       # (chạy `next lint` sẽ hỏi cấu hình tương tác). Xem README mục "Lint".
+
+  # App con độc lập trong thư mục sellertool/ (Vite + React, package.json riêng).
+  sellertool:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sellertool
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: sellertool/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
