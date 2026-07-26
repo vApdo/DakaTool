@@ -1,0 +1,152 @@
+{
+  "lastUpdated": "2026-07-26",
+  "tax": {
+    "id": "thue_hkd",
+    "label": "Thuế hộ/cá nhân kinh doanh (1% GTGT + 0,5% TNCN)",
+    "rate": 0.015,
+    "verified": false,
+    "sourceUrl": null
+  },
+  "platforms": [
+    {
+      "id": "shopee_normal",
+      "label": "Shopee (shop thường)",
+      "categories": [
+        { "id": "thoi_trang", "label": "Thời trang" },
+        { "id": "sac_dep", "label": "Sắc đẹp" },
+        { "id": "nha_cua", "label": "Nhà cửa & đời sống" },
+        { "id": "dien_tu", "label": "Điện tử & phụ kiện" },
+        { "id": "bach_hoa", "label": "Bách hóa" }
+      ],
+      "fees": [
+        {
+          "id": "giao_dich",
+          "label": "Phí xử lý giao dịch",
+          "type": "percent",
+          "rate": 0.06,
+          "amount": null,
+          "cap": null,
+          "optional": false,
+          "effectiveFrom": "2026-05-01",
+          "verified": false,
+          "sourceUrl": null
+        },
+        {
+          "id": "phi_co_dinh",
+          "label": "Phí cố định theo ngành hàng",
+          "type": "percent_by_category",
+          "rate": null,
+          "rateByCategory": {
+            "thoi_trang": null,
+            "sac_dep": null,
+            "nha_cua": null,
+            "dien_tu": null,
+            "bach_hoa": null
+          },
+          "amount": null,
+          "cap": null,
+          "optional": false,
+          "effectiveFrom": null,
+          "verified": false,
+          "sourceUrl": null,
+          "hint": "Xem % chính xác trong Kênh Người Bán của bạn"
+        },
+        {
+          "id": "ha_tang",
+          "label": "Phí hạ tầng",
+          "type": "flat",
+          "rate": null,
+          "amount": 3000,
+          "cap": null,
+          "optional": false,
+          "effectiveFrom": null,
+          "verified": false,
+          "sourceUrl": null
+        },
+        {
+          "id": "freeship_xtra",
+          "label": "Gói Freeship Xtra",
+          "type": "percent",
+          "rate": 0.05,
+          "amount": null,
+          "cap": 40000,
+          "optional": true,
+          "effectiveFrom": null,
+          "verified": false,
+          "sourceUrl": null
+        },
+        {
+          "id": "voucher_xtra",
+          "label": "Gói Voucher Xtra",
+          "type": "percent",
+          "rate": 0.04,
+          "amount": null,
+          "cap": 50000,
+          "optional": true,
+          "effectiveFrom": null,
+          "verified": false,
+          "sourceUrl": null
+        }
+      ]
+    },
+    {
+      "id": "tiktok_shop",
+      "label": "TikTok Shop",
+      "categories": [
+        { "id": "thoi_trang", "label": "Thời trang" },
+        { "id": "sac_dep", "label": "Sắc đẹp" },
+        { "id": "nha_cua", "label": "Nhà cửa & đời sống" },
+        { "id": "dien_tu", "label": "Điện tử & phụ kiện" },
+        { "id": "bach_hoa", "label": "Bách hóa" }
+      ],
+      "fees": [
+        {
+          "id": "hoa_hong",
+          "label": "Phí hoa hồng sàn",
+          "type": "percent_by_category",
+          "rate": null,
+          "rateByCategory": {
+            "thoi_trang": null,
+            "sac_dep": null,
+            "nha_cua": null,
+            "dien_tu": null,
+            "bach_hoa": null
+          },
+          "amount": null,
+          "cap": null,
+          "optional": false,
+          "effectiveFrom": null,
+          "verified": false,
+          "sourceUrl": null,
+          "hint": "Xem % chính xác trong TikTok Shop Seller Center"
+        },
+        {
+          "id": "giao_dich",
+          "label": "Phí giao dịch",
+          "type": "percent",
+          "rate": null,
+          "amount": null,
+          "cap": null,
+          "optional": false,
+          "effectiveFrom": null,
+          "verified": false,
+          "sourceUrl": null,
+          "hint": "Xem % chính xác trong TikTok Shop Seller Center"
+        },
+        {
+          "id": "van_chuyen",
+          "label": "Chương trình vận chuyển",
+          "type": "percent",
+          "rate": null,
+          "amount": null,
+          "cap": null,
+          "optional": true,
+          "effectiveFrom": null,
+          "verified": false,
+          "sourceUrl": null,
+          "hint": "Xem % trong chương trình vận chuyển bạn tham gia"
+        }
+      ]
+    }
+  ]
+}
