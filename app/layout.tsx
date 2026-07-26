@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   title: "DakaTool - Nền tảng tool tự động hóa nội bộ",
   description:
     "DakaTool giúp bạn tạo, quản lý và chạy các tool tự động hóa công việc hằng ngày — dùng nội bộ, không cần code lại từ đầu.",
+  // Bản nội bộ: không cho công cụ tìm kiếm đánh chỉ mục (xem thêm app/robots.ts).
+  robots: { index: false, follow: false },
 }
 
 export default function RootLayout({

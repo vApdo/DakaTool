@@ -53,6 +53,15 @@ export class LocalStorageProvider implements StorageProvider {
     }
   }
 
+  async statObject(key: string): Promise<{ sizeBytes: number } | null> {
+    try {
+      const info = await stat(this.resolve(key))
+      return { sizeBytes: info.size }
+    } catch {
+      return null
+    }
+  }
+
   async deleteObject(key: string): Promise<void> {
     await rm(this.resolve(key), { force: true })
   }

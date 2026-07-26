@@ -58,6 +58,21 @@ Xác thực mã: `GET|POST /auth`.
 - Ảnh được **nén phía trình duyệt** trước khi gửi (cạnh dài ≤ 1920px, JPEG 85%) —
   ảnh điện thoại 8MB thường còn dưới 1MB.
 
+## Hai luồng upload
+
+| Driver | Luồng | Dùng khi |
+|---|---|---|
+| `local` | multipart qua route handler (như cũ) | dev, VPS |
+| `s3` | xin URL đã ký ở `POST /projects/:id/uploads` → trình duyệt PUT thẳng lên S3/R2 → gửi key về | serverless (Vercel) |
+
+Client tự chọn: gọi `/uploads` trước, driver `local` trả `direct: false` thì quay lại
+multipart. Với luồng trực tiếp, server không thấy bytes lúc truyền nên kiểm lại trước khi
+ghi DB (`lib/construction/verify-upload.ts`): key đúng công trình, object tồn tại, không
+vượt hạn mức, magic bytes đúng định dạng và khớp đuôi đã ký. Sai thì xoá object và từ chối.
+
+Lý do tồn tại luồng thứ hai: serverless giới hạn body mỗi function 4.5MB — xem
+`docs/deploy-vercel.md`.
+
 ## Seed
 
 `npm run db:seed` tạo sẵn (idempotent) công trình **"Xưởng cơ khí HQT"** với 7 hạng

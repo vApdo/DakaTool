@@ -38,6 +38,13 @@ export interface StorageProvider {
 
   objectExists(key: string): Promise<boolean>
 
+  /**
+   * Kích thước object (byte), null nếu không tồn tại.
+   * Cần khi client PUT thẳng lên S3 bằng presigned URL: URL đã ký KHÔNG tự chặn
+   * được kích thước, nên server phải kiểm tra lại hạn mức sau khi upload xong.
+   */
+  statObject(key: string): Promise<{ sizeBytes: number } | null>
+
   deleteObject(key: string): Promise<void>
 
   /**

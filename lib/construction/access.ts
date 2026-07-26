@@ -55,32 +55,42 @@ export async function tryClaimManagerCode(code: string): Promise<boolean> {
 
 /**
  * Chống dò mã: đếm số lần nhập sai theo IP trong bộ nhớ tiến trình.
- * Đủ cho bản chạy nội bộ một tiến trình; nếu sau này chạy nhiều instance thì
- * chuyển sang Redis.
+ * Bộ đếm nằm ở DB (bảng ConstructionAuthAttempt) chứ không phải bộ nhớ tiến trình:
+ * khi chạy serverless mỗi instance có bộ nhớ riêng, kẻ dò mã chỉ cần rơi vào
+ * instance khác là được đếm lại từ đầu.
  */
 const MAX_ATTEMPTS = 8
 const WINDOW_MS = 10 * 60 * 1000
-const attempts = new Map<string, { count: number; resetAt: number }>()
 
-export function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const rec = attempts.get(ip)
-  if (!rec || now > rec.resetAt) {
-    attempts.set(ip, { count: 0, resetAt: now + WINDOW_MS })
-    return true
-  }
+export async function checkRateLimit(ip: string): Promise<boolean> {
+  const rec = await prisma.constructionAuthAttempt.findUnique({ where: { ip } })
+  if (!rec || Date.now() > rec.resetAt.getTime()) return true
   return rec.count < MAX_ATTEMPTS
 }
 
-export function recordFailedAttempt(ip: string): void {
+export async function recordFailedAttempt(ip: string): Promise<void> {
   const now = Date.now()
-  const rec = attempts.get(ip)
-  if (!rec || now > rec.resetAt) attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS })
-  else rec.count += 1
+  const resetAt = new Date(now + WINDOW_MS)
+  const rec = await prisma.constructionAuthAttempt.findUnique({ where: { ip } })
+
+  // Hết cửa sổ (hoặc chưa có bản ghi) → bắt đầu cửa sổ mới từ 1.
+  if (!rec || now > rec.resetAt.getTime()) {
+    await prisma.constructionAuthAttempt.upsert({
+      where: { ip },
+      create: { ip, count: 1, resetAt },
+      update: { count: 1, resetAt },
+    })
+    return
+  }
+
+  await prisma.constructionAuthAttempt.update({
+    where: { ip },
+    data: { count: { increment: 1 } },
+  })
 }
 
-export function clearAttempts(ip: string): void {
-  attempts.delete(ip)
+export async function clearAttempts(ip: string): Promise<void> {
+  await prisma.constructionAuthAttempt.deleteMany({ where: { ip } })
 }
 
 export async function verifyCode(code: string): Promise<boolean> {
