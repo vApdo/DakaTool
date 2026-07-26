@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { ToolIcon } from "@/components/tool-icon"
 import { ToolStatusBadge } from "@/components/status-badge"
-import { getToolRunner, hasCustomRunner } from "@/components/tool-runner-registry"
+import { getToolRunner } from "@/components/tool-runner-registry"
 import { ToolRunHistory, ToolRunMeta } from "@/components/tool-run-history"
 import { getToolById, tools } from "@/lib/data"
 
@@ -16,8 +16,9 @@ export default function ToolRunPage({ params }: { params: { id: string } }) {
   const tool = getToolById(params.id)
   if (!tool) notFound()
 
+  // Tool trong danh sách bắt buộc có runner thật — không còn bộ mô phỏng.
   const Runner = getToolRunner(tool.id)
-  const custom = hasCustomRunner(tool.id)
+  if (!Runner) notFound()
 
   return (
     <div>
@@ -40,24 +41,13 @@ export default function ToolRunPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {custom ? (
-        // Runner thật tự quản lý layout toàn chiều rộng; lịch sử thật hiện bên dưới.
-        <div className="space-y-6">
-          <Runner tool={tool} />
-          <div className="max-w-xl">
-            <ToolRunHistory toolId={tool.id} />
-          </div>
+      {/* Runner thật tự quản lý layout toàn chiều rộng; lịch sử thật hiện bên dưới. */}
+      <div className="space-y-6">
+        <Runner tool={tool} />
+        <div className="max-w-xl">
+          <ToolRunHistory toolId={tool.id} />
         </div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-5">
-          <div className="lg:col-span-3">
-            <Runner tool={tool} />
-          </div>
-          <aside className="lg:col-span-2">
-            <ToolRunHistory toolId={tool.id} />
-          </aside>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
