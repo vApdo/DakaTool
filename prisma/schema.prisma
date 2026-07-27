@@ -61,6 +61,17 @@ model AppSetting {
 
 // ===== Quản lý công trình xây dựng (Xưởng cơ khí HQT) =====
 
+/// Đếm số lần nhập sai mã quản lý theo IP, để chống dò mã.
+/// Phải nằm ở DB chứ không phải bộ nhớ tiến trình: khi chạy serverless (Vercel)
+/// mỗi instance có bộ nhớ riêng, kẻ dò mã chỉ cần rơi vào instance khác là được
+/// đếm lại từ đầu.
+model ConstructionAuthAttempt {
+  ip        String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+}
+
 enum ConstructionStatus {
   PLANNING
   IN_PROGRESS

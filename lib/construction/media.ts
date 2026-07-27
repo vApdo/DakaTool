@@ -29,15 +29,32 @@ function safeSegment(input: string): string {
   return input.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/\.{2,}/g, "_").slice(0, 80) || "x"
 }
 
+/** Đuôi file tương ứng định dạng ảnh — key luôn mang đúng đuôi của bytes thật. */
+export function extForImageKind(kind: ImageKind): string {
+  return kind === "jpeg" ? "jpg" : kind
+}
+
+/**
+ * Prefix key của một công trình. Dùng để chặn client khai một key thuộc công
+ * trình khác khi upload trực tiếp lên S3 (client tự gửi key về sau khi PUT).
+ */
+export function photoKeyPrefix(projectId: string): string {
+  return `construction/${safeSegment(projectId)}/photos/`
+}
+
+export function docKeyPrefix(projectId: string): string {
+  return `construction/${safeSegment(projectId)}/docs/`
+}
+
 export function photoStorageKey(projectId: string, kind: ImageKind): string {
-  return `construction/${safeSegment(projectId)}/photos/${randomUUID()}.${kind === "jpeg" ? "jpg" : kind}`
+  return `${photoKeyPrefix(projectId)}${randomUUID()}.${extForImageKind(kind)}`
 }
 
 export function docStorageKey(projectId: string, filename: string): string {
   const dot = filename.lastIndexOf(".")
   const ext = dot >= 0 ? filename.slice(dot).toLowerCase() : ""
   const safeExt = /^\.[a-z0-9]{1,10}$/.test(ext) ? ext : ""
-  return `construction/${safeSegment(projectId)}/docs/${randomUUID()}${safeExt}`
+  return `${docKeyPrefix(projectId)}${randomUUID()}${safeExt}`
 }
 
 /** MIME cho tài liệu đính kèm được phép. */

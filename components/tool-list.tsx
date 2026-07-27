@@ -74,11 +74,8 @@ export function ToolList({ tools }: { tools: Tool[] }) {
         <div className="card p-10 text-center">
           <p className="font-medium text-black dark:text-white">Không tìm thấy tool nào</p>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Thử từ khóa khác, hoặc tạo tool mới cho việc bạn đang cần.
+            Thử từ khóa khác hoặc chọn nhóm "Tất cả" để xem toàn bộ tool.
           </p>
-          <Link href="/tools/new" className="btn-primary mt-5">
-            Tạo Tool mới
-          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">

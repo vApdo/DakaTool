@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
       "unknown"
-    if (!checkRateLimit(ip)) {
+    if (!(await checkRateLimit(ip))) {
       return errorResponse(
         "TOO_MANY_ATTEMPTS",
         "Nhập sai quá nhiều lần. Vui lòng thử lại sau 10 phút.",
@@ -50,11 +50,11 @@ export async function POST(request: NextRequest) {
     // trước) thì rơi xuống nhánh kiểm tra mã như bình thường.
     const claimed = (await isCodeConfigured()) ? false : await tryClaimManagerCode(code)
     if (!claimed && !(await verifyCode(code))) {
-      recordFailedAttempt(ip)
+      await recordFailedAttempt(ip)
       return errorResponse("UNAUTHORIZED", "Mã không đúng.", 401)
     }
 
-    clearAttempts(ip)
+    await clearAttempts(ip)
     const response = ok({ authorized: true })
     attachManagerCookie(response, code)
     return response

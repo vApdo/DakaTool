@@ -1,25 +1,28 @@
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Wrench, PlayCircle, History, LayoutTemplate } from "lucide-react"
+import { ArrowRight, FileText, HardHat, History } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AnimatedSection } from "@/components/animated-section"
 import { tools } from "@/lib/data"
 
 const features = [
   {
-    title: "Tạo tool một lần.",
-    description: "Mô tả công việc lặp lại thành một tool có form nhập liệu rõ ràng, ai trong nhóm cũng chạy được.",
-    icon: Wrench,
+    title: "Xử lý PDF trọn bộ.",
+    description:
+      "Ghép, tách, sắp xếp, ký tên, đóng dấu, đánh số trang, chuyển đổi ảnh — chạy ngay trên trình duyệt, file không rời máy bạn.",
+    icon: FileText,
   },
   {
-    title: "Chạy khi cần.",
-    description: "Điền thông tin, bấm chạy và theo dõi tiến trình trực tiếp. Kết quả lưu lại đầy đủ trong lịch sử.",
-    icon: PlayCircle,
+    title: "Theo dõi công trình từ xa.",
+    description:
+      "Nhật ký ảnh từ công trường, tiến độ hạng mục, dự toán chi phí — ban lãnh đạo xem mọi lúc, quản lý cập nhật ngay trên điện thoại.",
+    icon: HardHat,
   },
   {
-    title: "Không làm lại từ đầu.",
-    description: "Thư viện template gom sẵn các quy trình hay dùng — nhân bản rồi chỉnh cho việc của bạn.",
-    icon: LayoutTemplate,
+    title: "Lịch sử chạy rõ ràng.",
+    description:
+      "Mỗi lần chạy tool đều được ghi lại trên trình duyệt của bạn — xem lại kết quả, tỷ lệ thành công bất cứ lúc nào.",
+    icon: History,
   },
 ]
 
@@ -80,11 +83,11 @@ export default function HomePage() {
           <HeroBackdrop />
           <div className="relative z-10 flex flex-col items-center px-6 py-16 text-center md:py-24 lg:py-28">
             <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-black dark:text-white md:text-6xl md:leading-[1.1]">
-              Việc lặp lại, <span className="accent-text">giao cho tool</span> làm thay
+              Hệ thống <span className="accent-text">tự động hóa</span> nội bộ doanh nghiệp
             </h1>
             <p className="mt-6 max-w-xl text-base text-gray-700 dark:text-[color:var(--muted-foreground)] md:text-lg">
-              DakaTool là nơi tạo, quản lý và chạy các tool tự động hóa công việc hằng ngày — đổi tên file, gộp báo cáo,
-              gửi email định kỳ — dùng trong nội bộ, không cần code lại từ đầu.
+              DakaTool là nơi cung cấp công cụ tự động hóa công việc hằng ngày — xử lý PDF, trích xuất dữ liệu chứng
+              từ, theo dõi tiến độ công trình — dùng trong nội bộ, không cần cài đặt.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Link href="/dashboard" className="btn-primary px-8">
@@ -106,7 +109,7 @@ export default function HomePage() {
               </div>
               <div>
                 <dd className="text-3xl font-semibold text-black dark:text-white">100%</dd>
-                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Xử lý trên máy bạn</dt>
+                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Tool PDF chạy ngay trên trình duyệt</dt>
               </div>
             </dl>
           </div>
@@ -119,8 +122,8 @@ export default function HomePage() {
             Một chỗ cho mọi <span className="accent-text">việc tự động</span>
           </h2>
           <p className="mt-4 text-base text-gray-700 dark:text-[color:var(--muted-foreground)] md:text-lg">
-            Thay vì mỗi người giữ một mớ script rời rạc, DakaTool gom tất cả về một nơi: có form nhập liệu, có lịch sử
-            chạy, có kết quả để xuất ra.
+            Thay vì mỗi người giữ một mớ công cụ rời rạc, DakaTool gom tất cả về một nơi: mở lên là dùng được ngay,
+            kết quả ghi lại rõ ràng.
           </p>
         </AnimatedSection>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -164,8 +167,8 @@ export default function HomePage() {
 
       <AnimatedSection delay={0.1}>
         <footer className="flex flex-wrap justify-between gap-2 border-t border-[color:var(--card-border)] py-6 text-sm text-gray-500 dark:text-[color:var(--muted)]">
-          <p>DakaTool — công cụ tự động hóa nội bộ.</p>
-          <p>MVP 0.1 · Dữ liệu mẫu, chưa kết nối hệ thống thật.</p>
+          <p>DakaTool — hệ thống tự động hóa nội bộ.</p>
+          <p>Xây dựng và phát triển bởi vApdo</p>
         </footer>
       </AnimatedSection>
     </div>

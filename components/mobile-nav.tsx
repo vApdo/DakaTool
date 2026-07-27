@@ -4,33 +4,22 @@ import { useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import {
-  LayoutDashboard,
-  Wrench,
-  PlusCircle,
-  LayoutTemplate,
-  History,
-  Download,
-  HardHat,
-} from "lucide-react"
+import { LayoutDashboard, Wrench, History, HardHat } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tools", label: "Tool", icon: Wrench },
-  { href: "/tools/new", label: "Tạo mới", icon: PlusCircle },
   { href: "/construction", label: "Công trình", icon: HardHat },
-  { href: "/templates", label: "Template", icon: LayoutTemplate },
   { href: "/history", label: "Lịch sử", icon: History },
-  { href: "/export", label: "Export", icon: Download },
 ]
 
 export function MobileNav() {
   const pathname = usePathname()
   const navRef = useRef<HTMLElement>(null)
 
-  // Thanh menu cuộn ngang và có 7 mục nên mục đang mở dễ nằm khuất ngoài mép phải
-  // (người dùng tưởng không có). Tự kéo mục đang mở vào tầm nhìn khi tải trang.
+  // Thanh menu cuộn ngang nên trên màn hẹp mục đang mở có thể nằm khuất ngoài mép
+  // phải (người dùng tưởng không có). Tự kéo mục đang mở vào tầm nhìn khi tải trang.
   useEffect(() => {
     const current = navRef.current?.querySelector('[aria-current="page"]')
     current?.scrollIntoView({ block: "nearest", inline: "center" })
@@ -55,7 +44,7 @@ export function MobileNav() {
         {navItems.map((item) => {
           const active =
             item.href === "/tools"
-              ? pathname === "/tools" || (pathname.startsWith("/tools/") && pathname !== "/tools/new")
+              ? pathname === "/tools" || pathname.startsWith("/tools/")
               : item.href === "/construction"
                 ? pathname.startsWith("/construction")
                 : pathname === item.href

@@ -73,3 +73,50 @@ export const authSchema = z.object({
 export const MAX_PHOTOS_PER_UPDATE = 10
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024 // 10MB/ảnh (client đã nén trước)
 export const MAX_DOC_BYTES = 25 * 1024 * 1024 // 25MB tài liệu
+
+/**
+ * MIME ảnh client được phép khai khi xin presigned URL. Đây CHỈ là khai báo để
+ * ký URL — bytes thật vẫn được xác minh bằng magic bytes sau khi upload xong.
+ */
+export const ALLOWED_PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"] as const
+
+/**
+ * Xin vé upload trực tiếp lên storage (bỏ qua giới hạn body 4.5MB của serverless).
+ * Client chỉ khai tên/kiểu/kích thước — KEY LUÔN DO SERVER SINH.
+ */
+export const uploadTicketRequestSchema = z.object({
+  target: z.enum(["photo", "doc"]),
+  items: z
+    .array(
+      z.object({
+        filename: z.string().trim().min(1).max(255),
+        contentType: z.string().trim().min(1).max(120),
+        sizeBytes: z.number().int().min(1),
+      }),
+    )
+    .min(1)
+    .max(MAX_PHOTOS_PER_UPDATE),
+})
+export type UploadTicketRequest = z.infer<typeof uploadTicketRequestSchema>
+
+/** Đăng nhật ký khi ảnh đã được PUT thẳng lên storage (body JSON, không multipart). */
+export const createUpdateJsonSchema = z.object({
+  note: z.string().trim().min(1, "Chú thích không được để trống.").max(4000),
+  authorName: z.string().trim().max(100).optional(),
+  photos: z
+    .array(
+      z.object({
+        storageKey: z.string().trim().min(1).max(400),
+        caption: z.string().max(500).optional(),
+      }),
+    )
+    .max(MAX_PHOTOS_PER_UPDATE)
+    .optional(),
+})
+
+/** Đính kèm tài liệu khi file đã được PUT thẳng lên storage. */
+export const attachFileJsonSchema = z.object({
+  storageKey: z.string().trim().min(1).max(400),
+  filename: z.string().trim().min(1).max(200),
+  kind: z.enum(FILE_KINDS),
+})

@@ -26,7 +26,10 @@ import { languageSchema } from "@/lib/auto-subtitle/schemas"
 import { buildStorageKey, getStorage } from "@/lib/storage"
 
 export const runtime = "nodejs"
-export const maxDuration = 300
+// Vercel Hobby chặn maxDuration > 60 ngay lúc build, nên để 60 cho deploy được.
+// Cấu hình này chỉ có tác dụng trên Vercel — bản self-host (VPS/Docker) bỏ qua nó,
+// nên upload video dài trên VPS không bị ảnh hưởng.
+export const maxDuration = 60
 
 function extAllowed(filename: string): boolean {
   const ext = path.extname(filename).toLowerCase()

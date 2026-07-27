@@ -57,12 +57,128 @@ export async function createProject(input: {
   return data.id
 }
 
+// ---- Upload trực tiếp lên storage ----
+/**
+ * Serverless giới hạn body của route handler ở 4.5MB — không đủ cho một lần đăng
+ * 10 ảnh. Nên xin URL đã ký rồi PUT thẳng lên S3/R2, route handler chỉ nhận key.
+ * Server chạy driver local không có presigned URL → trả null, quay lại multipart.
+ */
+interface UploadTicket {
+  url: string
+  method: "PUT"
+  headers: Record<string, string>
+  key: string
+  expiresInSeconds: number
+}
+
+async function requestUploadTickets(
+  projectId: string,
+  target: "photo" | "doc",
+  files: File[],
+): Promise<UploadTicket[] | null> {
+  const data = await jsonOrThrow<{ direct: boolean; uploads?: UploadTicket[] }>(
+    await fetch(`${BASE}/projects/${projectId}/uploads`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        target,
+        items: files.map((f) => ({
+          filename: f.name,
+          contentType: f.type || "application/octet-stream",
+          sizeBytes: f.size,
+        })),
+      }),
+    }),
+  )
+  return data.direct && data.uploads ? data.uploads : null
+}
+
+function putToStorage(
+  ticket: UploadTicket,
+  file: File,
+  onBytes: (loaded: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open(ticket.method, ticket.url)
+    // Header phải khớp đúng lúc ký URL, nếu không S3 trả 403.
+    for (const [name, value] of Object.entries(ticket.headers)) {
+      xhr.setRequestHeader(name, value)
+    }
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onBytes(e.loaded)
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onBytes(file.size)
+        resolve()
+      } else {
+        reject(new Error(`Tải file lên kho lưu trữ thất bại (${xhr.status}).`))
+      }
+    }
+    xhr.onerror = () => reject(new Error("Không tải được file lên kho lưu trữ."))
+    xhr.send(file)
+  })
+}
+
+/** Upload nhiều file, gộp tiến độ theo tổng số byte đã gửi. */
+async function uploadAll(
+  tickets: UploadTicket[],
+  files: File[],
+  onProgress?: (fraction: number) => void,
+): Promise<string[]> {
+  const total = files.reduce((sum, f) => sum + f.size, 0) || 1
+  const loaded = new Array<number>(files.length).fill(0)
+  await Promise.all(
+    tickets.map((ticket, i) =>
+      putToStorage(ticket, files[i], (n) => {
+        loaded[i] = n
+        onProgress?.(Math.min(1, loaded.reduce((a, b) => a + b, 0) / total))
+      }),
+    ),
+  )
+  return tickets.map((t) => t.key)
+}
+
 // ---- Nhật ký ảnh ----
 export async function postUpdate(
   projectId: string,
   input: { note: string; authorName?: string; photos: Array<{ file: File; caption: string }> },
   onProgress?: (fraction: number) => void,
 ): Promise<void> {
+  const files = input.photos.map((p) => p.file)
+
+  if (files.length === 0) {
+    await jsonOrThrow(
+      await fetch(`${BASE}/projects/${projectId}/updates`, {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({ note: input.note, authorName: input.authorName }),
+      }),
+    )
+    return
+  }
+
+  const tickets = await requestUploadTickets(projectId, "photo", files)
+  if (tickets) {
+    const keys = await uploadAll(tickets, files, onProgress)
+    await jsonOrThrow(
+      await fetch(`${BASE}/projects/${projectId}/updates`, {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          note: input.note,
+          authorName: input.authorName,
+          photos: keys.map((storageKey, i) => ({
+            storageKey,
+            caption: input.photos[i].caption || undefined,
+          })),
+        }),
+      }),
+    )
+    return
+  }
+
   const form = new FormData()
   form.append(
     "meta",
@@ -130,6 +246,19 @@ export async function uploadFile(
   file: File,
   kind: "PLAN" | "BUDGET" | "OTHER",
 ): Promise<void> {
+  const tickets = await requestUploadTickets(projectId, "doc", [file])
+  if (tickets) {
+    await uploadAll(tickets, [file])
+    await jsonOrThrow(
+      await fetch(`${BASE}/projects/${projectId}/files`, {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({ storageKey: tickets[0].key, filename: file.name, kind }),
+      }),
+    )
+    return
+  }
+
   const form = new FormData()
   form.append("file", file)
   form.append("kind", kind)

@@ -1,12 +1,4 @@
-export type ToolCategory =
-  | "PDF"
-  | "File"
-  | "Dữ liệu"
-  | "Email"
-  | "Web"
-  | "Báo cáo"
-  | "Chứng từ"
-  | "Video & Content"
+export type ToolCategory = "PDF" | "Chứng từ" | "Video & Content"
 
 export type ToolStatus = "active" | "draft"
 
@@ -28,19 +20,8 @@ export interface Tool {
   category: ToolCategory
   icon: string
   status: ToolStatus
-  runsCount: number
-  lastRunAt: string | null
   inputs: ToolInput[]
   tags: string[]
-}
-
-export interface Template {
-  id: string
-  name: string
-  description: string
-  category: ToolCategory
-  icon: string
-  steps: string[]
 }
 
 export type RunStatus = "success" | "failed" | "running"

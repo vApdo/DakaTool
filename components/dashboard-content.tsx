@@ -1,11 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Wrench, PlayCircle, CheckCircle2, LayoutTemplate } from "lucide-react"
+import { ArrowRight, Wrench, PlayCircle, CheckCircle2, FileText } from "lucide-react"
 import { RunStatusBadge } from "@/components/status-badge"
 import { ToolIcon } from "@/components/tool-icon"
 import { AnimatedSection } from "@/components/animated-section"
-import { tools, templates, formatDateTime } from "@/lib/data"
+import { tools, formatDateTime } from "@/lib/data"
 import { useRunHistory } from "@/lib/run-history"
 
 /** Nội dung dashboard với số liệu chạy THẬT từ lịch sử trên trình duyệt. */
@@ -23,11 +23,13 @@ export function DashboardContent() {
     .slice(0, 4)
   const recentRuns = runs.slice(0, 5)
 
+  const pdfTools = tools.filter((t) => t.category === "PDF" || t.category === "Chứng từ")
+
   const stats = [
-    { label: "Tool sẵn sàng", value: `${activeTools.length}/${tools.length}`, icon: Wrench },
+    { label: "Tool sẵn sàng", value: String(activeTools.length), icon: Wrench },
     { label: "Lượt chạy trên trình duyệt này", value: String(runs.length), icon: PlayCircle },
     { label: "Tỷ lệ thành công", value: successRate === null ? "—" : `${successRate}%`, icon: CheckCircle2 },
-    { label: "Template có sẵn", value: String(templates.length), icon: LayoutTemplate },
+    { label: "Tool xử lý PDF", value: String(pdfTools.length), icon: FileText },
   ]
 
   return (

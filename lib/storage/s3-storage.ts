@@ -71,6 +71,17 @@ export class S3StorageProvider implements StorageProvider {
     }
   }
 
+  async statObject(key: string): Promise<{ sizeBytes: number } | null> {
+    try {
+      const res = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+      )
+      return { sizeBytes: res.ContentLength ?? 0 }
+    } catch {
+      return null
+    }
+  }
+
   async deleteObject(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
   }
