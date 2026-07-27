@@ -5,6 +5,9 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    // lib/ chứa các chuỗi class dùng chung (vd lib/construction/ui.ts). Thiếu dòng
+    // này Tailwind không sinh CSS cho chúng → nền trong suốt, thiếu min-height…
+    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
     "*.{js,ts,jsx,tsx,mdx}",
   ],
   darkMode: ["class"],

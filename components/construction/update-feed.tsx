@@ -53,9 +53,10 @@ export function UpdateFeed({
               <button
                 type="button"
                 onClick={() => onDelete(u.id)}
-                className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                aria-label="Xoá cập nhật này"
+                className="ml-auto inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
               >
-                <Trash2 className="h-3.5 w-3.5" /> Xóa
+                <Trash2 className="h-4 w-4" /> Xóa
               </button>
             )}
           </header>
