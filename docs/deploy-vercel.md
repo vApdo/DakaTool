@@ -108,6 +108,20 @@ Khi `STORAGE_DRIVER=local` (chạy dev hoặc VPS) thì không có presigned URL
 `/uploads` trả `direct: false` và client tự quay lại luồng multipart cũ. Nhờ vậy bản VPS
 chạy y như trước, không phải cấu hình gì thêm.
 
+## Deploy báo lỗi thì đọc log trước
+
+Build chạy qua `scripts/vercel-build.mjs`. Script này in cảnh báo/lỗi bằng tiếng Việt
+trong log deploy, nói thẳng thiếu gì và sửa ở đâu:
+
+| Thấy trong log | Nghĩa là | Xử lý |
+|---|---|---|
+| `THIẾU DATABASE_URL — bỏ qua migration` | Chưa khai báo `DATABASE_URL`. Deploy **vẫn thành công**, nhưng `/construction` sẽ lỗi khi mở. | Thêm biến ở Bước 3, **tick đủ cả Production lẫn Preview**, rồi Redeploy. |
+| `DỪNG BUILD: chạy migration thất bại` | Có `DATABASE_URL` nhưng không kết nối được. | Kiểm chuỗi pooled + `?sslmode=require`, DB chưa bị Neon tạm dừng, mật khẩu đã URL-encode. |
+| `STORAGE_DRIVER ... trên Vercel phải là "s3"` | Đang để `local` → upload ảnh sẽ hỏng. | Làm Bước 2 rồi đặt `STORAGE_DRIVER=s3`. |
+
+Cần nhớ: trên Vercel biến môi trường phải **tick riêng cho từng môi trường**. Chỉ tick
+Production thì mọi deploy Preview (mỗi pull request đều tạo một cái) sẽ thiếu biến.
+
 ## Hạn chế đã biết
 
 - **Gói Hobby giới hạn function 60s.** Đủ dùng vì ảnh không còn đi qua server, nhưng

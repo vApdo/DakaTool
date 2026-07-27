@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "prisma generate && prisma migrate deploy && (npm run db:seed || echo 'Bỏ qua seed (lỗi không nghiêm trọng).') && next build",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
