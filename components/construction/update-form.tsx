@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ImagePlus, Loader2, X } from "lucide-react"
+import { Camera, ImagePlus, Loader2, X } from "lucide-react"
 import { postUpdate } from "@/lib/construction/client"
 import { compressImage } from "@/lib/construction/image-compress"
 import { MAX_PHOTOS_PER_UPDATE } from "@/lib/construction/schemas"
+import { INPUT, STICKY_BAR, TAP } from "@/lib/construction/ui"
 
 interface Picked {
   file: File
@@ -20,7 +21,8 @@ export function UpdateForm({ projectId, onPosted }: { projectId: string; onPoste
   const [busy, setBusy] = useState(false)
   const [pct, setPct] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const pickRef = useRef<HTMLInputElement>(null)
+  const camRef = useRef<HTMLInputElement>(null)
 
   // Nhớ tên người đăng cho lần sau.
   useEffect(() => {
@@ -94,38 +96,71 @@ export function UpdateForm({ projectId, onPosted }: { projectId: string; onPoste
     }
   }
 
+  const full = photos.length >= MAX_PHOTOS_PER_UPDATE
+
   return (
     <div className="space-y-3">
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        rows={3}
+        rows={4}
         placeholder="Chú thích tiến độ hôm nay (vd: Đã đổ xong móng trục A–C, chuẩn bị dựng cột thép…)"
-        className="w-full resize-y rounded-xl border border-gray-300 bg-transparent px-3 py-2 text-sm focus:border-primary focus:outline-none dark:border-gray-700"
+        className={`${INPUT} resize-y`}
       />
 
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => inputRef.current?.click()} className="btn-secondary text-sm">
-          <ImagePlus className="h-4 w-4" /> Chọn ảnh ({photos.length}/{MAX_PHOTOS_PER_UPDATE})
+      {/* Hai lối vào ảnh: chụp ngay tại công trường, hoặc lấy ảnh đã chụp trước đó. */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => camRef.current?.click()}
+          disabled={full}
+          className={`btn-secondary justify-center text-sm disabled:opacity-50 ${TAP}`}
+        >
+          <Camera className="h-4 w-4" /> Chụp ảnh
         </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            void addFiles(e.target.files)
-            e.target.value = ""
-          }}
-        />
-        <input
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-          placeholder="Người cập nhật"
-          className="flex-1 rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm dark:border-gray-700"
-        />
+        <button
+          type="button"
+          onClick={() => pickRef.current?.click()}
+          disabled={full}
+          className={`btn-secondary justify-center text-sm disabled:opacity-50 ${TAP}`}
+        >
+          <ImagePlus className="h-4 w-4" /> Chọn từ máy
+        </button>
       </div>
+      <p className="text-xs text-gray-500">
+        Đã chọn {photos.length}/{MAX_PHOTOS_PER_UPDATE} ảnh · ảnh được nén tự động trước khi tải lên
+      </p>
+
+      {/* capture="environment" mở thẳng camera sau trên điện thoại. */}
+      <input
+        ref={camRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          void addFiles(e.target.files)
+          e.target.value = ""
+        }}
+      />
+      <input
+        ref={pickRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          void addFiles(e.target.files)
+          e.target.value = ""
+        }}
+      />
+
+      <input
+        value={author}
+        onChange={(e) => setAuthor(e.target.value)}
+        placeholder="Người cập nhật"
+        className={INPUT}
+      />
 
       {photos.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -137,10 +172,10 @@ export function UpdateForm({ projectId, onPosted }: { projectId: string; onPoste
                 <button
                   type="button"
                   onClick={() => removeAt(i)}
-                  aria-label="Bỏ ảnh"
-                  className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                  aria-label={`Bỏ ảnh ${i + 1}`}
+                  className="absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
               <input
@@ -149,7 +184,7 @@ export function UpdateForm({ projectId, onPosted }: { projectId: string; onPoste
                   setPhotos((prev) => prev.map((x, idx) => (idx === i ? { ...x, caption: e.target.value } : x)))
                 }
                 placeholder="Chú thích ảnh"
-                className="mt-1.5 w-full rounded-md border border-gray-200 bg-transparent px-2 py-1 text-xs dark:border-gray-700"
+                className={`${INPUT} mt-1.5`}
               />
               <p className="mt-1 text-[11px] text-gray-400">{(p.file.size / 1024).toFixed(0)} KB</p>
             </div>
@@ -164,15 +199,24 @@ export function UpdateForm({ projectId, onPosted }: { projectId: string; onPoste
       )}
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      <button type="button" onClick={submit} disabled={busy} className="btn-primary w-full justify-center disabled:opacity-50">
-        {busy ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Đang đăng…
-          </>
-        ) : (
-          "Đăng cập nhật"
-        )}
-      </button>
+      <div className={STICKY_BAR}>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={busy}
+          className={`btn-primary w-full justify-center disabled:opacity-50 ${TAP}`}
+        >
+          {busy ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Đang đăng…
+            </>
+          ) : photos.length > 0 ? (
+            `Đăng ${photos.length} ảnh`
+          ) : (
+            "Đăng cập nhật"
+          )}
+        </button>
+      </div>
     </div>
   )
 }

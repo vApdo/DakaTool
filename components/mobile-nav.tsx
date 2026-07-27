@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -26,6 +27,14 @@ const navItems = [
 
 export function MobileNav() {
   const pathname = usePathname()
+  const navRef = useRef<HTMLElement>(null)
+
+  // Thanh menu cuộn ngang và có 7 mục nên mục đang mở dễ nằm khuất ngoài mép phải
+  // (người dùng tưởng không có). Tự kéo mục đang mở vào tầm nhìn khi tải trang.
+  useEffect(() => {
+    const current = navRef.current?.querySelector('[aria-current="page"]')
+    current?.scrollIntoView({ block: "nearest", inline: "center" })
+  }, [pathname])
 
   return (
     <div className="md:hidden border-b border-[color:var(--card-border)] bg-[color:var(--card)]">
@@ -38,7 +47,11 @@ export function MobileNav() {
         </Link>
         <ThemeToggle />
       </div>
-      <nav className="flex gap-1 overflow-x-auto px-2 pb-2" aria-label="Điều hướng chính">
+      <nav
+        ref={navRef}
+        className="flex snap-x gap-1 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-label="Điều hướng chính"
+      >
         {navItems.map((item) => {
           const active =
             item.href === "/tools"

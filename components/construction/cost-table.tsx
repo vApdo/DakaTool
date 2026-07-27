@@ -4,6 +4,17 @@ import { useState } from "react"
 import { Check, Loader2, Plus, Trash2 } from "lucide-react"
 import { formatVnd, saveCosts, type CostRow } from "@/lib/construction/client"
 import type { CostItemDTO } from "@/lib/construction/types"
+import {
+  groupDigits,
+  humanVnd,
+  ICON_BTN,
+  INPUT,
+  INPUT_NUM,
+  LABEL,
+  parseDigits,
+  STICKY_BAR,
+  TAP,
+} from "@/lib/construction/ui"
 
 function totals(items: { estimatedVnd: number; actualVnd: number }[]) {
   return items.reduce(
@@ -12,7 +23,11 @@ function totals(items: { estimatedVnd: number; actualVnd: number }[]) {
   )
 }
 
-/** Chế độ xem (lãnh đạo): bảng dự toán / đã chi / chênh lệch + dòng tổng. */
+/**
+ * Chế độ xem (lãnh đạo).
+ * - Mobile: danh sách thẻ (bảng 4 cột số tiền không thể vừa màn 390px, ép vuốt ngang).
+ * - Từ 640px: bảng đầy đủ như cũ.
+ */
 export function CostView({ items }: { items: CostItemDTO[] }) {
   if (items.length === 0) return <p className="text-sm text-gray-500">Chưa có dữ liệu chi phí.</p>
   const t = totals(items)
@@ -20,7 +35,49 @@ export function CostView({ items }: { items: CostItemDTO[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto">
+      {/* --- Mobile: thẻ từng hạng mục --- */}
+      <div className="space-y-2 sm:hidden">
+        {items.map((c) => {
+          const pct = c.estimatedVnd > 0 ? Math.round((c.actualVnd / c.estimatedVnd) * 100) : 0
+          const over = c.actualVnd > c.estimatedVnd
+          return (
+            <div key={c.id} className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+              <div className="flex items-start gap-2">
+                <span className="font-medium text-black dark:text-white">{c.name}</span>
+                <span
+                  className={`ml-auto shrink-0 font-mono text-sm tabular-nums ${over ? "text-red-600 dark:text-red-400" : "text-gray-500"}`}
+                >
+                  {pct}%
+                </span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+                <div
+                  className={`h-full rounded-full ${over ? "bg-red-500" : "bg-primary"}`}
+                  style={{ width: `${Math.min(100, pct)}%` }}
+                />
+              </div>
+              <p className="mt-1.5 font-mono text-xs tabular-nums text-gray-600 dark:text-gray-400">
+                {formatVnd(c.actualVnd)} / {formatVnd(c.estimatedVnd)}
+              </p>
+              {c.note && <p className="mt-1 text-xs text-gray-500">{c.note}</p>}
+            </div>
+          )
+        })}
+        <div className="rounded-xl bg-[color:var(--primary-soft)] p-3">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-black dark:text-white">Tổng cộng</span>
+            <span className="ml-auto font-mono text-sm tabular-nums text-gray-600 dark:text-gray-400">
+              đã dùng {usedPct}%
+            </span>
+          </div>
+          <p className="mt-1 font-mono text-sm tabular-nums">
+            {formatVnd(t.act)} / {formatVnd(t.est)}
+          </p>
+        </div>
+      </div>
+
+      {/* --- Từ 640px: bảng đầy đủ --- */}
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500 dark:border-gray-800">
@@ -58,7 +115,8 @@ export function CostView({ items }: { items: CostItemDTO[] }) {
           </tbody>
         </table>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+
+      <div className="hidden h-2 overflow-hidden rounded-full bg-gray-200 sm:block dark:bg-gray-800">
         <div
           className={`h-full rounded-full ${usedPct > 100 ? "bg-red-500" : "bg-primary"}`}
           style={{ width: `${Math.min(100, usedPct)}%` }}
@@ -89,12 +147,14 @@ export function CostEditor({
   )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [dirty, setDirty] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const t = totals(rows)
 
   function patch(i: number, data: Partial<CostRow>) {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...data } : r)))
     setSaved(false)
+    setDirty(true)
   }
 
   async function save() {
@@ -108,6 +168,7 @@ export function CostEditor({
     try {
       await saveCosts(projectId, rows)
       setSaved(true)
+      setDirty(false)
       onSaved?.()
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -123,50 +184,47 @@ export function CostEditor({
         {rows.map((r, i) => (
           <div
             key={r.id ?? `new-${i}`}
-            className="grid grid-cols-1 gap-2 rounded-xl border border-gray-200 p-3 sm:grid-cols-[1.4fr_1fr_1fr_auto] dark:border-gray-800"
+            className="rounded-xl border border-gray-200 p-3 dark:border-gray-800"
           >
-            <input
-              value={r.name}
-              onChange={(e) => patch(i, { name: e.target.value })}
-              placeholder="Hạng mục chi phí"
-              className="rounded-lg border border-gray-300 bg-transparent px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none dark:border-gray-700"
-            />
-            <label className="text-xs text-gray-500">
-              Dự toán (₫)
+            <div className="flex items-center gap-2">
               <input
-                type="number"
-                min={0}
+                value={r.name}
+                onChange={(e) => patch(i, { name: e.target.value })}
+                placeholder="Hạng mục chi phí"
+                className={INPUT}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setRows((prev) => prev.filter((_, idx) => idx !== i))
+                  setSaved(false)
+                  setDirty(true)
+                }}
+                aria-label={`Xoá dòng ${r.name || i + 1}`}
+                className={ICON_BTN}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <MoneyField
+                label="Dự toán"
                 value={r.estimatedVnd}
-                onChange={(e) => patch(i, { estimatedVnd: Math.max(0, Number(e.target.value) || 0) })}
-                className="mt-1 w-full rounded-lg border border-gray-300 bg-transparent px-2 py-1 text-right font-mono text-sm tabular-nums dark:border-gray-700"
+                onChange={(v) => patch(i, { estimatedVnd: v })}
               />
-            </label>
-            <label className="text-xs text-gray-500">
-              Đã chi (₫)
-              <input
-                type="number"
-                min={0}
+              <MoneyField
+                label="Đã chi"
                 value={r.actualVnd}
-                onChange={(e) => patch(i, { actualVnd: Math.max(0, Number(e.target.value) || 0) })}
-                className="mt-1 w-full rounded-lg border border-gray-300 bg-transparent px-2 py-1 text-right font-mono text-sm tabular-nums dark:border-gray-700"
+                onChange={(v) => patch(i, { actualVnd: v })}
               />
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                setRows((prev) => prev.filter((_, idx) => idx !== i))
-                setSaved(false)
-              }}
-              aria-label="Xóa dòng"
-              className="self-end rounded-lg px-2 py-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            </div>
+
             <input
               value={r.note ?? ""}
               onChange={(e) => patch(i, { note: e.target.value })}
               placeholder="Ghi chú"
-              className="rounded-lg border border-gray-300 bg-transparent px-2.5 py-1.5 text-sm sm:col-span-4 dark:border-gray-700"
+              className={`${INPUT} mt-2`}
             />
           </div>
         ))}
@@ -177,22 +235,62 @@ export function CostEditor({
         <b className="font-mono tabular-nums">{formatVnd(t.act)}</b>
       </p>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => {
+          setRows((prev) => [...prev, { name: "", estimatedVnd: 0, actualVnd: 0, note: null }])
+          setDirty(true)
+        }}
+        className={`btn-secondary w-full justify-center text-sm sm:w-auto ${TAP}`}
+      >
+        <Plus className="h-4 w-4" /> Thêm dòng
+      </button>
+
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+      <div className={STICKY_BAR}>
         <button
           type="button"
-          onClick={() =>
-            setRows((prev) => [...prev, { name: "", estimatedVnd: 0, actualVnd: 0, note: null }])
-          }
-          className="btn-secondary text-sm"
+          onClick={save}
+          disabled={saving}
+          className={`btn-primary flex-1 justify-center text-sm disabled:opacity-50 sm:flex-none ${TAP}`}
         >
-          <Plus className="h-4 w-4" /> Thêm dòng
-        </button>
-        <button type="button" onClick={save} disabled={saving} className="btn-primary text-sm disabled:opacity-50">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : null}
           {saving ? "Đang lưu…" : saved ? "Đã lưu" : "Lưu chi phí"}
         </button>
-        {error && <span className="text-sm text-red-600 dark:text-red-400">{error}</span>}
+        {dirty && !saving && (
+          <span className="text-xs text-gray-500">Có thay đổi chưa lưu</span>
+        )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Ô nhập tiền: hiển thị dấu chấm phân cách khi gõ và một dòng "đọc hiểu"
+ * (≈ 2,5 tỷ ₫) để soát nhanh xem có thừa/thiếu số 0 — lỗi hay gặp nhất khi gõ
+ * số tiền 10 chữ số trên bàn phím điện thoại.
+ */
+function MoneyField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+}) {
+  return (
+    <label className="block">
+      <span className={LABEL}>{label} (₫)</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={groupDigits(value)}
+        onChange={(e) => onChange(parseDigits(e.target.value))}
+        className={`${INPUT_NUM} mt-1`}
+      />
+      <span className="mt-1 block text-right text-xs text-gray-500">{humanVnd(value)}</span>
+    </label>
   )
 }

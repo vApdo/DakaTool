@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { AlertTriangle, ArrowLeft, Eye, Loader2, Upload } from "lucide-react"
 import { CostEditor } from "@/components/construction/cost-table"
+import { ManageTabs, TabPanel, useManageTab } from "@/components/construction/manage-tabs"
 import { ManagerGate } from "@/components/construction/manager-gate"
 import { MilestoneEditor } from "@/components/construction/milestone-table"
 import { UpdateFeed } from "@/components/construction/update-feed"
 import { UpdateForm } from "@/components/construction/update-form"
 import { deleteUpdate, getProject, uploadFile } from "@/lib/construction/client"
 import type { ConstructionProjectDetailDTO } from "@/lib/construction/types"
+import { INPUT, TAP } from "@/lib/construction/ui"
 
 /** Trang nhập liệu dành cho quản lý cấp trung (cần mã truy cập). */
 export default function ManagePage({ params }: { params: { id: string } }) {
@@ -31,6 +33,7 @@ export default function ManagePage({ params }: { params: { id: string } }) {
 function ManageContent({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<ConstructionProjectDetailDTO | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useManageTab()
 
   const reload = useCallback(async () => {
     try {
@@ -85,35 +88,46 @@ function ManageContent({ projectId }: { projectId: string }) {
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      <Panel title="Đăng cập nhật tiến độ" desc="Ảnh được nén tự động trước khi tải lên.">
-        <UpdateForm projectId={projectId} onPosted={reload} />
-      </Panel>
+      {/* Mobile: chọn một việc để làm. Từ md trở lên hiện cả ba phần xếp dọc. */}
+      <ManageTabs value={tab} onChange={setTab} />
 
-      <Panel title="Kế hoạch & tiến độ hạng mục">
-        <MilestoneEditor
-          key={project.milestones.map((m) => m.id).join(",")}
-          projectId={projectId}
-          initial={project.milestones}
-          onSaved={reload}
-        />
-      </Panel>
+      <TabPanel tab="photos" active={tab}>
+        <div className="space-y-8">
+          <Panel title="Đăng cập nhật tiến độ" desc="Ảnh được nén tự động trước khi tải lên.">
+            <UpdateForm projectId={projectId} onPosted={reload} />
+          </Panel>
+          <Panel title="Các cập nhật đã đăng">
+            <UpdateFeed updates={project.updates} onDelete={handleDelete} />
+          </Panel>
+        </div>
+      </TabPanel>
 
-      <Panel title="Dự toán chi phí">
-        <CostEditor
-          key={project.costItems.map((c) => c.id).join(",")}
-          projectId={projectId}
-          initial={project.costItems}
-          onSaved={reload}
-        />
-      </Panel>
+      <TabPanel tab="progress" active={tab}>
+        <Panel title="Kế hoạch & tiến độ hạng mục">
+          <MilestoneEditor
+            key={project.milestones.map((m) => m.id).join(",")}
+            projectId={projectId}
+            initial={project.milestones}
+            onSaved={reload}
+          />
+        </Panel>
+      </TabPanel>
 
-      <Panel title="Tài liệu (bản vẽ, dự toán)" desc="PDF, Excel, Word, CSV — tối đa 25MB.">
-        <FileUploader projectId={projectId} onUploaded={reload} />
-      </Panel>
-
-      <Panel title="Các cập nhật đã đăng">
-        <UpdateFeed updates={project.updates} onDelete={handleDelete} />
-      </Panel>
+      <TabPanel tab="costs" active={tab}>
+        <div className="space-y-8">
+          <Panel title="Dự toán chi phí">
+            <CostEditor
+              key={project.costItems.map((c) => c.id).join(",")}
+              projectId={projectId}
+              initial={project.costItems}
+              onSaved={reload}
+            />
+          </Panel>
+          <Panel title="Tài liệu (bản vẽ, dự toán)" desc="PDF, Excel, Word, CSV — tối đa 25MB.">
+            <FileUploader projectId={projectId} onUploaded={reload} />
+          </Panel>
+        </div>
+      </TabPanel>
     </div>
   )
 }
@@ -143,13 +157,18 @@ function FileUploader({ projectId, onUploaded }: { projectId: string; onUploaded
       <select
         value={kind}
         onChange={(e) => setKind(e.target.value as typeof kind)}
-        className="rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm dark:border-gray-700"
+        className={`${INPUT} sm:w-auto`}
       >
         <option value="PLAN">Bản vẽ / kế hoạch</option>
         <option value="BUDGET">Dự toán</option>
         <option value="OTHER">Khác</option>
       </select>
-      <button type="button" onClick={() => inputRef.current?.click()} disabled={busy} className="btn-secondary text-sm disabled:opacity-50">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        className={`btn-secondary w-full justify-center text-sm disabled:opacity-50 sm:w-auto ${TAP}`}
+      >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
         {busy ? "Đang tải…" : "Chọn tài liệu"}
       </button>

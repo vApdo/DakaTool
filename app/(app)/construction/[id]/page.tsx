@@ -76,8 +76,25 @@ export default function ConstructionDetailPage({ params }: { params: { id: strin
         </Link>
       </div>
 
-      {/* Ba số tổng quan */}
-      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* Ba số tổng quan.
+          Mobile: một thẻ 3 cột gọn — ba thẻ lớn xếp dọc chiếm gần trọn màn hình đầu,
+          đẩy ảnh công trường (thứ lãnh đạo cần xem nhất) xuống quá sâu.
+          Từ 640px: ba thẻ riêng như cũ. */}
+      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-3 sm:hidden dark:border-gray-800 dark:bg-gray-900/40">
+        <div className="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-800">
+          <MiniStat label="Tiến độ" value={`${project.overallPercent}%`} />
+          <MiniStat label="Ngân sách" value={`${budgetPct}%`} danger={budgetPct > 100} />
+          <MiniStat label="Còn lại" value={daysLeft(project.targetDate)} small />
+        </div>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${project.overallPercent}%` }} />
+        </div>
+        <p className="mt-2 text-center font-mono text-xs tabular-nums text-gray-500">
+          {formatVnd(project.totalActualVnd)} / {formatVnd(project.totalEstimatedVnd)}
+        </p>
+      </div>
+
+      <div className="mb-8 hidden gap-3 sm:grid sm:grid-cols-3">
         <StatCard label="Tiến độ tổng" value={`${project.overallPercent}%`} bar={project.overallPercent} />
         <StatCard
           label="Ngân sách đã dùng"
@@ -128,6 +145,32 @@ export default function ConstructionDetailPage({ params }: { params: { id: strin
           </ul>
         )}
       </Section>
+    </div>
+  )
+}
+
+/** Ô số liệu gọn cho mobile (3 ô cùng một hàng). */
+function MiniStat({
+  label,
+  value,
+  danger,
+  small,
+}: {
+  label: string
+  value: string
+  danger?: boolean
+  small?: boolean
+}) {
+  return (
+    <div className="px-1 text-center">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500">{label}</p>
+      <p
+        className={`mt-0.5 font-semibold tabular-nums ${small ? "text-sm" : "text-xl"} ${
+          danger ? "text-red-600 dark:text-red-400" : "text-black dark:text-white"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   )
 }

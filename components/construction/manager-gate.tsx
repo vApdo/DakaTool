@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { KeyRound, Loader2, ShieldCheck } from "lucide-react"
 import { getAuthStatus, login } from "@/lib/construction/client"
+import { INPUT, TAP } from "@/lib/construction/ui"
 
 /**
  * Cổng vào trang quản lý: yêu cầu mã. Lần đầu (chưa ai đặt mã) thì mã nhập vào
@@ -68,14 +69,14 @@ export function ManagerGate({ children }: { children: React.ReactNode }) {
           onKeyDown={(e) => e.key === "Enter" && !busy && submit()}
           placeholder="Mã truy cập"
           autoComplete="off"
-          className="w-full rounded-xl border border-gray-300 bg-transparent px-3 py-2 text-sm focus:border-primary focus:outline-none dark:border-gray-700"
+          className={INPUT}
         />
         {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
         <button
           type="button"
           onClick={submit}
           disabled={busy || code.length < 4}
-          className="btn-primary mt-3 w-full justify-center disabled:opacity-50"
+          className={`btn-primary mt-3 w-full justify-center disabled:opacity-50 ${TAP}`}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {firstRun ? "Đặt mã và vào" : "Vào trang quản lý"}
