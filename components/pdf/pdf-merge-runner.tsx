@@ -7,7 +7,7 @@ import { downloadBytes } from "@/lib/download"
 import { formatBytes } from "@/lib/pdf/limits"
 import { FileDropZone } from "./file-drop-zone"
 import { SortableFileList } from "./sortable-file-list"
-import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { RunStatusLine, errorMessage } from "./run-status"
 import { useToolRunState } from "./use-tool-run-state"
 
 /** Ghép nhiều PDF thành một file, theo thứ tự người dùng sắp xếp. */

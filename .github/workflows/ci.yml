@@ -28,6 +28,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Lint
+        run: npm run lint
+
       - name: Unit tests
         run: npm test
 
@@ -48,8 +51,6 @@ jobs:
       - name: Subtitle engine tests (Python)
         run: npm run test:subtitle-engine
 
-      # Lint CHƯA đưa vào CI: `next lint` chưa được cấu hình ESLint trong repo
-      # (chạy `next lint` sẽ hỏi cấu hình tương tác). Xem README mục "Lint".
 
   # App con độc lập trong thư mục sellertool/ (Vite + React, package.json riêng).
   sellertool:

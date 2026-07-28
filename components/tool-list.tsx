@@ -74,7 +74,7 @@ export function ToolList({ tools }: { tools: Tool[] }) {
         <div className="card p-10 text-center">
           <p className="font-medium text-black dark:text-white">Không tìm thấy tool nào</p>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Thử từ khóa khác hoặc chọn nhóm "Tất cả" để xem toàn bộ tool.
+            Thử từ khóa khác hoặc chọn nhóm “Tất cả” để xem toàn bộ tool.
           </p>
         </div>
       ) : (

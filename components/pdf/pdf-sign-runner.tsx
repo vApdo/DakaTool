@@ -5,7 +5,7 @@ import { Eraser, PenLine, X } from "lucide-react"
 import type { Tool } from "@/lib/types"
 import { baseName, downloadBytes } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
-import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { RunStatusLine, errorMessage } from "./run-status"
 import { useToolRunState } from "./use-tool-run-state"
 
 const POSITIONS: { value: string; label: string; x: number; y: number }[] = [
