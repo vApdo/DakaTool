@@ -54,7 +54,7 @@ export async function tryClaimManagerCode(code: string): Promise<boolean> {
 }
 
 /**
- * Chống dò mã: đếm số lần nhập sai theo IP trong bộ nhớ tiến trình.
+ * Chống dò mã: đếm số lần nhập sai theo IP, tối đa 8 lần / 10 phút.
  * Bộ đếm nằm ở DB (bảng ConstructionAuthAttempt) chứ không phải bộ nhớ tiến trình:
  * khi chạy serverless mỗi instance có bộ nhớ riêng, kẻ dò mã chỉ cần rơi vào
  * instance khác là được đếm lại từ đầu.
