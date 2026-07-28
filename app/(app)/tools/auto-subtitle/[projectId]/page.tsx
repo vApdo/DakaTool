@@ -56,7 +56,8 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
         setError(null)
         // Poll mỗi 2s khi còn đang xử lý.
         if (PROCESSING_STATUSES.has(data.status)) {
-          timer.current = setTimeout(tick, 2000)
+          // `void` cho rõ: tick tự bắt lỗi bên trong, setTimeout không chờ promise.
+          timer.current = setTimeout(() => void tick(), 2000)
         }
       } catch (err) {
         if (cancelled) return

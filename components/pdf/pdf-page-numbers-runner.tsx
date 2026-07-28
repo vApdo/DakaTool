@@ -6,7 +6,7 @@ import type { Tool } from "@/lib/types"
 import type { PageNumberFormat, PageNumberPosition } from "@/lib/pdf/edit"
 import { baseName, downloadBytes } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
-import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { RunStatusLine, errorMessage } from "./run-status"
 import { useToolRunState } from "./use-tool-run-state"
 
 const POSITIONS: { value: PageNumberPosition; label: string }[] = [

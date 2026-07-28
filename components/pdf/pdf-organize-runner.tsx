@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Download, RotateCw, Trash2, Undo2, X } from "luc
 import type { Tool } from "@/lib/types"
 import { baseName, downloadBytes } from "@/lib/download"
 import { FileDropZone } from "./file-drop-zone"
-import { RunStatusLine, errorMessage, type SimpleRunState } from "./run-status"
+import { RunStatusLine, errorMessage } from "./run-status"
 import { useToolRunState } from "./use-tool-run-state"
 
 interface PageItem {

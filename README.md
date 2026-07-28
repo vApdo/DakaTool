@@ -11,12 +11,15 @@ npm install         # cài phụ thuộc
 npm run dev         # chạy dev tại http://localhost:3000
 npm test            # unit test (vitest)
 npx tsc --noEmit    # kiểm tra kiểu TypeScript
+npm run lint        # ESLint (next/core-web-vitals + @typescript-eslint)
 npm run build       # build production
 ```
 
-> `npm run lint` **chưa** được đưa vào CI: dự án chưa cấu hình ESLint, chạy `next lint`
-> sẽ hỏi cấu hình tương tác. Khi cần bật lint, thêm `eslint` + `eslint-config-next`
-> rồi cập nhật `.github/workflows/ci.yml` trong một thay đổi riêng.
+> Lint dùng quy tắc **có đọc kiểu** (`parserOptions.project`), nên bắt được cả những lỗi
+> mà kiểm tra cú pháp thường bỏ qua — đáng kể nhất là `no-floating-promises`: quên `await`
+> trước một hàm async khiến code chạy tiếp mà không chờ, kiểu vẫn đúng nên `tsc` im lặng.
+> Quy tắc `no-misused-promises` được nới ở thuộc tính JSX (`onClick={handleAsync}` là cách
+> viết bình thường của React); mọi chỗ khác vẫn bị chặn.
 
 ## Nguyên tắc xử lý dữ liệu
 

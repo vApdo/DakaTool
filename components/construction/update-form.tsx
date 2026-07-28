@@ -42,12 +42,27 @@ export function UpdateForm({ projectId, onPosted }: { projectId: string; onPoste
   async function addFiles(list: FileList | null) {
     if (!list) return
     setError(null)
-    const compressed = await Promise.all(
-      Array.from(list).map(async (f) => {
-        const file = await compressImage(f)
-        return { file, preview: URL.createObjectURL(file), caption: "" }
-      }),
-    )
+
+    // compressImage vẽ ảnh lên canvas — hỏng ảnh hoặc máy yếu là ném lỗi. Không
+    // bắt ở đây thì promise rejected trong im lặng: người chụp ngoài công trường
+    // chọn ảnh xong thấy KHÔNG có gì xảy ra và không biết vì sao.
+    let compressed: Picked[]
+    try {
+      compressed = await Promise.all(
+        Array.from(list).map(async (f) => {
+          const file = await compressImage(f)
+          return { file, preview: URL.createObjectURL(file), caption: "" }
+        }),
+      )
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `Không đọc được ảnh: ${err.message}`
+          : "Không đọc được ảnh. Thử chụp lại hoặc chọn ảnh khác.",
+      )
+      return
+    }
+
     // Cắt theo state MỚI NHẤT (không dùng biến đóng cũ), tránh vượt giới hạn khi
     // người dùng chọn ảnh hai lần liên tiếp lúc đang nén.
     setPhotos((prev) => {
