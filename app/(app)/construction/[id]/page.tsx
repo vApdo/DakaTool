@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { AlertTriangle, ArrowLeft, Download, FileText, Loader2, Settings } from "lucide-react"
 import { CostView } from "@/components/construction/cost-table"
-import { MilestoneView } from "@/components/construction/milestone-table"
+import { MilestoneSection } from "@/components/construction/milestone-section"
 import { UpdateFeed } from "@/components/construction/update-feed"
 import { formatVnd, getProject } from "@/lib/construction/client"
 import type { ConstructionProjectDetailDTO, ConstructionStatusDTO } from "@/lib/construction/types"
@@ -115,7 +115,7 @@ export default function ConstructionDetailPage({ params }: { params: { id: strin
       </Section>
 
       <Section title="Kế hoạch & tiến độ hạng mục">
-        <MilestoneView milestones={project.milestones} />
+        <MilestoneSection milestones={project.milestones} />
       </Section>
 
       <Section title="Dự toán chi phí">
