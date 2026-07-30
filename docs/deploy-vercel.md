@@ -29,7 +29,33 @@ sửa gì, phải nâng lên hệ thống tài khoản thật.
 postgresql://user:pass@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/dakatool?sslmode=require
 ```
 
-Supabase hoặc Vercel Postgres cũng được, miễn là dùng chuỗi có pooler.
+Vercel Postgres cũng được, miễn là dùng chuỗi có pooler.
+
+### Nếu dùng Supabase — chọn ĐÚNG một trong ba chuỗi
+
+Supabase đưa ba chuỗi kết nối và chúng **không thay thế nhau được**. Chọn sai thì hoặc
+build chết ở bước migration, hoặc app chạy được vài phút rồi hết connection.
+
+Vào **Project Settings → Database → Connection string**:
+
+| Chuỗi | Cổng | Dùng được ở đây? |
+|---|---|---|
+| Direct connection (`db.<ref>.supabase.co`) | 5432 | **Không.** Chỉ có IPv6, Vercel không gọi tới được |
+| Transaction pooler (`...pooler.supabase.com`) | 6543 | Chạy app thì tốt nhưng **không chạy được migration** |
+| **Session pooler** (`...pooler.supabase.com`) | **5432** | **Dùng cái này** — vừa migrate vừa chạy app được |
+
+Chuỗi Session pooler có dạng (chú ý phần user là `postgres.<ref>`, không phải `postgres`):
+
+```
+postgresql://postgres.abcdefgh:MAT-KHAU@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
+```
+
+Mật khẩu chứa ký tự đặc biệt (`@ # ? /`) thì phải URL-encode, nếu không chuỗi bị cắt sai chỗ.
+
+> Về sau nếu nhiều người dùng cùng lúc và bắt đầu báo hết connection, cách chuẩn là tách
+> làm hai: app chạy qua Transaction pooler (6543, thêm `?pgbouncer=true&connection_limit=1`)
+> còn migration chạy qua chuỗi Session pooler khai báo riêng ở `DIRECT_URL`. Cách này cần
+> thêm `directUrl` vào `prisma/schema.prisma` — chưa làm vì quy mô hiện tại chưa cần.
 
 ## Bước 2 — Kho ảnh (Cloudflare R2)
 

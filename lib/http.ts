@@ -44,6 +44,26 @@ export function handleError(err: unknown): NextResponse {
   if (err instanceof ConflictError) {
     return errorResponse("CONFLICT", err.message, 409)
   }
-  const message = err instanceof Error ? err.message : "Lỗi máy chủ."
+  // Lỗi ngoài dự kiến: KHÔNG trả err.message ra ngoài. Thông báo của Prisma chẳng
+  // hạn có kèm đường dẫn file schema, tên biến môi trường và cấu hình datasource —
+  // bất kỳ ai mở link đều đọc được. Chi tiết ghi vào log máy chủ, người dùng chỉ
+  // thấy câu giải thích được việc mình cần làm.
+  console.error("[api] Lỗi không xử lý được:", err)
+
+  const message = isDatabaseUnavailable(err)
+    ? "Chưa kết nối được cơ sở dữ liệu. Nếu bạn là người cài đặt, kiểm tra biến môi trường DATABASE_URL (xem docs/deploy-vercel.md)."
+    : "Lỗi máy chủ. Vui lòng thử lại; nếu vẫn lỗi, báo người quản trị kèm thời điểm gặp lỗi."
   return errorResponse("INTERNAL_ERROR", message, 500)
+}
+
+/**
+ * Nhận diện nhóm lỗi "không có/không tới được database" để nói đúng nguyên nhân
+ * thay vì một câu chung chung. Khớp theo mã lỗi Prisma:
+ * P1012 thiếu biến môi trường, P1000/P1001/P1002 sai thông tin đăng nhập hoặc
+ * không kết nối được, P2021/P2022 chưa chạy migration.
+ */
+function isDatabaseUnavailable(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const text = `${err.message} ${(err as { code?: string }).code ?? ""}`
+  return /P1000|P1001|P1002|P1012|P2021|P2022|DATABASE_URL/.test(text)
 }
