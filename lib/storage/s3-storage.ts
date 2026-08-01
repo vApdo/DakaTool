@@ -38,6 +38,14 @@ export class S3StorageProvider implements StorageProvider {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
       },
+      // Từ bản 3.729 AWS SDK mặc định WHEN_SUPPORTED: mọi PutObject được gắn thêm
+      // x-amz-checksum-crc32. Với URL ĐÃ KÝ, checksum bị tính trên body rỗng (lúc
+      // ký chưa có bytes) rồi ký luôn vào URL — trình duyệt PUT ảnh thật lên là
+      // lệch, R2 trả 400. Phản hồi 400 đó lại không kèm header CORS nên trình duyệt
+      // chỉ báo "blocked by CORS policy", che mất nguyên nhân thật.
+      // WHEN_REQUIRED = chỉ tính checksum ở những thao tác bắt buộc phải có.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     })
   }
 
