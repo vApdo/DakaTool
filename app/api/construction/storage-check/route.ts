@@ -34,6 +34,29 @@ interface AttemptResult {
   urlDaKy?: { host: string; duongDan: string; thamSo: string[] }
 }
 
+/**
+ * Soi một khoá mà KHÔNG lộ giá trị: chỉ báo độ dài, độ dài mong đợi, và ký tự lạ
+ * đầu tiên kèm vị trí. Đủ để người cài đặt biết mình dán thừa cái gì, ở đâu.
+ */
+function soiKhoa(raw: string | undefined, doDaiMongDoi: number) {
+  if (!raw) return { trangThai: "CHƯA ĐẶT" }
+  const sauKhiCat = raw.trim()
+  const la = sauKhiCat.match(/[^A-Za-z0-9]/)
+  return {
+    doDai: raw.length,
+    doDaiMongDoi,
+    coKhoangTrangThua: raw !== sauKhiCat,
+    kyTuLa: la
+      ? {
+          moTa: /\s/.test(la[0]) ? "khoảng trắng hoặc xuống dòng" : `"${la[0]}"`,
+          viTri: `${sauKhiCat.indexOf(la[0]) + 1}/${sauKhiCat.length}`,
+        }
+      : null,
+    trangThai:
+      !la && sauKhiCat.length === doDaiMongDoi && raw === sauKhiCat ? "OK" : "CÓ VẤN ĐỀ",
+  }
+}
+
 function describeError(err: unknown): { maLoi: string; thongBao: string } {
   if (!(err instanceof Error)) return { maLoi: "UNKNOWN", thongBao: String(err) }
   const meta = err as Error & { Code?: string; $metadata?: { httpStatusCode?: number } }
@@ -124,8 +147,10 @@ export async function GET(request: NextRequest) {
       S3_REGION: process.env.S3_REGION ?? "(chưa đặt → auto)",
       S3_ENDPOINT_host: endpointHost,
       S3_FORCE_PATH_STYLE: process.env.S3_FORCE_PATH_STYLE ?? "(chưa đặt → false)",
-      doDai_ACCESS_KEY_ID: (process.env.S3_ACCESS_KEY_ID ?? "").length,
-      doDai_SECRET_ACCESS_KEY: (process.env.S3_SECRET_ACCESS_KEY ?? "").length,
+      khoa: {
+        ACCESS_KEY_ID: soiKhoa(process.env.S3_ACCESS_KEY_ID, 32),
+        SECRET_ACCESS_KEY: soiKhoa(process.env.S3_SECRET_ACCESS_KEY, 64),
+      },
     }
 
     const canhBao: string[] = []
@@ -140,6 +165,19 @@ export async function GET(request: NextRequest) {
     }
     if ((process.env.S3_REGION ?? "auto") !== "auto") {
       canhBao.push(`S3_REGION nên là "auto" với Cloudflare R2.`)
+    }
+    for (const [ten, doDai] of [
+      ["S3_ACCESS_KEY_ID", 32],
+      ["S3_SECRET_ACCESS_KEY", 64],
+    ] as const) {
+      const soi = soiKhoa(process.env[ten], doDai)
+      if (soi.trangThai !== "OK") {
+        canhBao.push(
+          `${ten} không đúng dạng (dài ${soi.doDai ?? 0}, cần ${doDai} ký tự chữ và số` +
+            (soi.kyTuLa ? `, có ${soi.kyTuLa.moTa} ở vị trí ${soi.kyTuLa.viTri}` : "") +
+            "). Copy lại đúng dãy khoá, không kèm nhãn hay dòng thừa, rồi Redeploy.",
+        )
+      }
     }
 
     const thuNghiem = [await tryStyle(true), await tryStyle(false)]
