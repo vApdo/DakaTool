@@ -2,7 +2,6 @@
  * Prisma seed (idempotent).
  *
  * - Thư viện Tool của DakaTool là tĩnh (lib/data.ts) nên không seed vào DB.
- * - Auto Subtitle: dữ liệu do người dùng tạo khi chạy, không cần seed.
  * - Quản lý công trình: tạo sẵn dự án "Xưởng cơ khí HQT" kèm khung hạng mục mẫu
  *   để ban lãnh đạo thấy cấu trúc ngay từ đầu (chỉ tạo nếu chưa tồn tại).
  */
@@ -46,8 +45,6 @@ async function seedConstruction() {
 }
 
 async function main() {
-  const projectCount = await prisma.subtitleProject.count()
-  console.log(`[seed] Auto Subtitle: ${projectCount} project (không cần seed).`)
   await seedConstruction()
 }
 

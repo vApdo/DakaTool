@@ -3,10 +3,8 @@
 Dành cho nhu cầu: **ban lãnh đạo xem tiến độ công trình từ xa**, quản lý cấp trung nhập
 liệu qua điện thoại ngoài công trường — không cần VPS, không cần máy cá nhân bật 24/7.
 
-> **Chỉ deploy được module công trình.** Auto Subtitle không chạy trên Vercel (cần worker
-> nền, Redis, Python/ffmpeg, job kéo dài hàng giờ). Trang `/tools/auto-subtitle` sau khi
-> deploy sẽ tạo được project nhưng job không bao giờ chạy vì không có worker tiêu thụ
-> queue. Cần Auto Subtitle thì dùng `docs/deploy-vps.md`.
+Repo hiện chỉ cần backend cho module Quản lý công trình; các công cụ PDF chạy trực tiếp
+trong trình duyệt.
 
 ## Cảnh báo trước khi bắt đầu
 
@@ -102,8 +100,6 @@ Sau khi gắn domain riêng thì thêm domain đó vào `AllowedOrigins`.
 | `S3_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
 | `S3_ACCESS_KEY_ID` | token ở bước 2 |
 | `S3_SECRET_ACCESS_KEY` | token ở bước 2 |
-
-Không cần `REDIS_URL` và các biến `WHISPER_*` — module công trình không dùng.
 
 4. Deploy. Lần đầu migration chạy trong build, log sẽ có dòng
    `Đã tạo công trình "Xưởng cơ khí HQT"`.

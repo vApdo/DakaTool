@@ -1,4 +1,4 @@
-export type ToolCategory = "PDF" | "Chứng từ" | "Video & Content"
+export type ToolCategory = "PDF" | "Chứng từ"
 
 export type ToolStatus = "active" | "draft"
 

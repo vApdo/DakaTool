@@ -1,6 +1,6 @@
 /**
  * Tiện ích HTTP chung cho các route handler (JSON response + map lỗi nghiệp vụ).
- * Dùng chung cho Auto Subtitle và Quản lý công trình.
+ * Dùng chung cho các API của DakaTool.
  */
 import { NextResponse } from "next/server"
 import { ZodError } from "zod"

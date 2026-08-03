@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "DakaTool — Công cụ nội bộ",
     short_name: "DakaTool",
-    description: "Quản lý công trình, phụ đề tự động và các công cụ nội bộ.",
+    description: "Quản lý công trình và các công cụ nội bộ.",
     start_url: "/construction",
     display: "standalone",
     background_color: "#0f1211",

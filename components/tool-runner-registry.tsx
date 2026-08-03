@@ -12,8 +12,7 @@ import { PdfSignRunner } from "./pdf/pdf-sign-runner"
 
 /**
  * Registry ánh xạ tool id → runner component. Mọi tool trong lib/data.ts phải
- * có runner thật ở đây (auto-subtitle là ngoại lệ duy nhất — có trang riêng
- * app/(app)/tools/auto-subtitle). Không còn runner mô phỏng.
+ * có runner thật ở đây. Không còn runner mô phỏng.
  */
 const toolRunnerRegistry: Record<string, ComponentType<{ tool: Tool }>> = {
   "hbl-pdf-extractor": HblPdfExtractorRunner,
