@@ -72,6 +72,7 @@ async function postFromStorageKeys(request: NextRequest, projectId: string) {
     const update = await repo.createUpdate(projectId, {
       note: body.note,
       authorName: body.authorName,
+      milestoneUpdate: body.milestoneUpdate,
       photos,
     })
     return ok({ update }, { status: 201 })
@@ -138,6 +139,7 @@ async function postFromMultipart(request: NextRequest, projectId: string) {
     const update = await repo.createUpdate(projectId, {
       note: meta.note,
       authorName: meta.authorName,
+      milestoneUpdate: meta.milestoneUpdate,
       photos,
     })
     return ok({ update }, { status: 201 })
