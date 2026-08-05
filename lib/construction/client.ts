@@ -3,6 +3,7 @@ import type {
   ConstructionProjectDTO,
   ConstructionProjectDetailDTO,
   MilestoneDTO,
+  MilestoneStatusDTO,
   CostItemDTO,
 } from "./types"
 
@@ -143,7 +144,12 @@ async function uploadAll(
 // ---- Nhật ký ảnh ----
 export async function postUpdate(
   projectId: string,
-  input: { note: string; authorName?: string; photos: Array<{ file: File; caption: string }> },
+  input: {
+    note: string
+    authorName?: string
+    photos: Array<{ file: File; caption: string }>
+    milestoneUpdate?: { id: string; percent: number; status: MilestoneStatusDTO; note?: string }
+  },
   onProgress?: (fraction: number) => void,
 ): Promise<void> {
   const files = input.photos.map((p) => p.file)
@@ -153,7 +159,11 @@ export async function postUpdate(
       await fetch(`${BASE}/projects/${projectId}/updates`, {
         method: "POST",
         headers: jsonHeaders,
-        body: JSON.stringify({ note: input.note, authorName: input.authorName }),
+        body: JSON.stringify({
+          note: input.note,
+          authorName: input.authorName,
+          milestoneUpdate: input.milestoneUpdate,
+        }),
       }),
     )
     return
@@ -169,6 +179,7 @@ export async function postUpdate(
         body: JSON.stringify({
           note: input.note,
           authorName: input.authorName,
+          milestoneUpdate: input.milestoneUpdate,
           photos: keys.map((storageKey, i) => ({
             storageKey,
             caption: input.photos[i].caption || undefined,
@@ -185,6 +196,7 @@ export async function postUpdate(
     JSON.stringify({
       note: input.note,
       authorName: input.authorName || undefined,
+      milestoneUpdate: input.milestoneUpdate,
       captions: input.photos.map((p) => p.caption),
     }),
   )

@@ -33,6 +33,14 @@ export type UpdateProjectInput = z.infer<typeof updateProjectSchema>
 export const createUpdateMetaSchema = z.object({
   note: z.string().trim().min(1, "Chú thích không được để trống.").max(4000),
   authorName: z.string().trim().max(100).optional(),
+  milestoneUpdate: z
+    .object({
+      id: z.string().trim().min(1),
+      percent: z.number().int().min(0).max(100),
+      status: z.enum(MILESTONE_STATUSES),
+      note: z.string().trim().max(1000).optional(),
+    })
+    .optional(),
   /** Caption theo thứ tự ảnh gửi lên. */
   captions: z.array(z.string().max(500)).max(10).optional(),
 })
@@ -103,6 +111,14 @@ export type UploadTicketRequest = z.infer<typeof uploadTicketRequestSchema>
 export const createUpdateJsonSchema = z.object({
   note: z.string().trim().min(1, "Chú thích không được để trống.").max(4000),
   authorName: z.string().trim().max(100).optional(),
+  milestoneUpdate: z
+    .object({
+      id: z.string().trim().min(1),
+      percent: z.number().int().min(0).max(100),
+      status: z.enum(MILESTONE_STATUSES),
+      note: z.string().trim().max(1000).optional(),
+    })
+    .optional(),
   photos: z
     .array(
       z.object({
