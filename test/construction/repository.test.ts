@@ -13,13 +13,20 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { saveMilestones, saveCostItems } from "@/lib/construction/repository"
+import { createUpdate, saveMilestones, saveCostItems } from "@/lib/construction/repository"
 import { AccessError, ConflictError } from "@/lib/http"
 
 // vi.hoisted: mock phải tồn tại TRƯỚC khi module dưới test được nạp.
 const prismaMock = vi.hoisted(() => ({
   constructionProject: { findUnique: vi.fn() },
-  constructionMilestone: { findMany: vi.fn(), deleteMany: vi.fn(), update: vi.fn(), create: vi.fn() },
+  constructionMilestone: {
+    findMany: vi.fn(),
+    deleteMany: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    create: vi.fn(),
+  },
+  constructionUpdate: { create: vi.fn() },
   constructionCostItem: { findMany: vi.fn(), deleteMany: vi.fn(), update: vi.fn(), create: vi.fn() },
   $transaction: vi.fn(),
 }))
@@ -138,6 +145,50 @@ describe("saveMilestones", () => {
       (c) => c[0].data.sortOrder,
     )
     expect(orders).toEqual([0, 1])
+  })
+})
+
+describe("createUpdate", () => {
+  it("lưu % hạng mục và nhật ký trong cùng một transaction", async () => {
+    prismaMock.constructionMilestone.updateMany.mockResolvedValue({ count: 1 })
+    prismaMock.constructionUpdate.create.mockResolvedValue({
+      id: "up-1",
+      projectId: PROJECT,
+      note: "Hạng mục: Móng\nTiến độ: 75%\nĐã đổ trục A–C",
+      authorName: "Anh Nam",
+      createdAt: new Date("2026-08-03T03:00:00Z"),
+      photos: [],
+    })
+    prismaMock.$transaction.mockImplementationOnce(async (callback) => callback(prismaMock))
+
+    await createUpdate(PROJECT, {
+      note: "Hạng mục: Móng\nTiến độ: 75%\nĐã đổ trục A–C",
+      authorName: "Anh Nam",
+      milestoneUpdate: { id: "ms-1", percent: 75, status: "IN_PROGRESS", note: "Đã đổ trục A–C" },
+      photos: [],
+    })
+
+    expect(prismaMock.constructionMilestone.updateMany).toHaveBeenCalledWith({
+      where: { id: "ms-1", projectId: PROJECT },
+      data: { percent: 75, status: "IN_PROGRESS", note: "Đã đổ trục A–C" },
+    })
+    expect(prismaMock.constructionUpdate.create).toHaveBeenCalledTimes(1)
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1)
+  })
+
+  it("không tạo nhật ký nếu hạng mục không thuộc công trình", async () => {
+    prismaMock.constructionMilestone.updateMany.mockResolvedValue({ count: 0 })
+    prismaMock.$transaction.mockImplementationOnce(async (callback) => callback(prismaMock))
+
+    await expect(
+      createUpdate(PROJECT, {
+        note: "Cập nhật",
+        milestoneUpdate: { id: "ms-khac", percent: 50, status: "IN_PROGRESS" },
+        photos: [],
+      }),
+    ).rejects.toBeInstanceOf(AccessError)
+
+    expect(prismaMock.constructionUpdate.create).not.toHaveBeenCalled()
   })
 })
 

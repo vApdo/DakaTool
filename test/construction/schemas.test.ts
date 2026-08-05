@@ -27,6 +27,21 @@ describe("createUpdateMetaSchema", () => {
     const meta = createUpdateMetaSchema.parse({ note: "Đổ móng xong", captions: ["Trục A", "Trục B"] })
     expect(meta.captions).toEqual(["Trục A", "Trục B"])
   })
+  it("chấp nhận cập nhật hạng mục hợp lệ", () => {
+    const meta = createUpdateMetaSchema.parse({
+      note: "Đã đổ xong móng",
+      milestoneUpdate: { id: "ms-1", percent: 75, status: "IN_PROGRESS", note: "Đã đổ xong móng" },
+    })
+    expect(meta.milestoneUpdate?.percent).toBe(75)
+  })
+  it("từ chối phần trăm hạng mục ngoài 0–100", () => {
+    expect(() =>
+      createUpdateMetaSchema.parse({
+        note: "Sai dữ liệu",
+        milestoneUpdate: { id: "ms-1", percent: 101, status: "IN_PROGRESS" },
+      }),
+    ).toThrow()
+  })
   it("từ chối quá 10 caption", () => {
     expect(() =>
       createUpdateMetaSchema.parse({ note: "x", captions: Array(11).fill("a") }),

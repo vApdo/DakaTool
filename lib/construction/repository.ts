@@ -102,6 +102,12 @@ export async function createUpdate(
   input: {
     note: string
     authorName?: string
+    milestoneUpdate?: {
+      id: string
+      percent: number
+      status: "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "DELAYED"
+      note?: string
+    }
     photos: Array<{ storageKey: string; caption?: string }>
   },
 ): Promise<UpdateDTO> {
@@ -111,20 +117,36 @@ export async function createUpdate(
   })
   if (!exists) throw new AccessError("Công trình không tồn tại.", "not_found")
 
-  const update = await prisma.constructionUpdate.create({
-    data: {
-      projectId,
-      note: input.note,
-      authorName: input.authorName,
-      photos: {
-        create: input.photos.map((p, i) => ({
-          storageKey: p.storageKey,
-          caption: p.caption,
-          sortOrder: i,
-        })),
+  const update = await prisma.$transaction(async (tx) => {
+    if (input.milestoneUpdate) {
+      const result = await tx.constructionMilestone.updateMany({
+        where: { id: input.milestoneUpdate.id, projectId },
+        data: {
+          percent: input.milestoneUpdate.percent,
+          status: input.milestoneUpdate.status,
+          note: input.milestoneUpdate.note ?? input.note,
+        },
+      })
+      if (result.count !== 1) {
+        throw new AccessError("Hạng mục không còn tồn tại. Vui lòng tải lại trang.", "not_found")
+      }
+    }
+
+    return tx.constructionUpdate.create({
+      data: {
+        projectId,
+        note: input.note,
+        authorName: input.authorName,
+        photos: {
+          create: input.photos.map((p, i) => ({
+            storageKey: p.storageKey,
+            caption: p.caption,
+            sortOrder: i,
+          })),
+        },
       },
-    },
-    include: { photos: { orderBy: { sortOrder: "asc" } } },
+      include: { photos: { orderBy: { sortOrder: "asc" } } },
+    })
   })
   return toUpdateDTO(update)
 }
