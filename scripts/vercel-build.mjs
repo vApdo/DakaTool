@@ -11,8 +11,7 @@
  *
  * Nguyên tắc ở đây:
  * - Thiếu cấu hình DB  → CẢNH BÁO rồi vẫn build. App lên được, phần không cần
- *   DB dùng bình thường; module Quản lý công trình sẽ báo lỗi khi mở, kèm
- *   hướng dẫn trong log deploy.
+ *   DB dùng bình thường; Auto Subtitle sẽ không dùng được các luồng cần DB.
  * - Có DATABASE_URL nhưng migrate hỏng → DỪNG. Người dùng đã cố ý cấu hình DB
  *   nên đây là lỗi thật (sai chuỗi kết nối, DB không cho kết nối...), phải nói
  *   to chứ không nuốt đi rồi để app 500 lúc chạy.
@@ -62,40 +61,26 @@ if (hasDatabaseUrl()) {
     console.error("  - Dùng chuỗi POOLED (Neon: host có đuôi '-pooler'), kèm ?sslmode=require")
     console.error("  - Database đang bật, chưa bị tạm dừng do không dùng lâu ngày")
     console.error("  - Mật khẩu trong chuỗi đã được URL-encode nếu chứa ký tự đặc biệt")
-    console.error("Chi tiết: docs/deploy-vercel.md")
+    console.error("Xem cấu hình DATABASE_URL trong .env.example và docs/deploy-vps.md.")
     console.error(`${BOX}\n`)
     process.exit(1)
   }
 
-  // Seed idempotent — hỏng cũng không chặn deploy (chỉ là dữ liệu mẫu).
+  // Seed idempotent — hỏng cũng không chặn deploy.
   if (run("npx", ["tsx", "prisma/seed.ts"]) !== 0) {
-    warn(["Bỏ qua seed (không nghiêm trọng): không tạo được dữ liệu mẫu."])
+    warn(["Bỏ qua seed (không nghiêm trọng)."])
   }
 } else {
   warn([
     "THIẾU DATABASE_URL — bỏ qua migration, vẫn tiếp tục build.",
     "",
-    "Hệ quả: module Quản lý công trình (/construction) sẽ báo lỗi khi mở.",
-    "Phần còn lại (trang chủ, các tool PDF chạy trong trình duyệt) vẫn dùng được.",
+    "Hệ quả: Auto Subtitle không dùng được các luồng cần cơ sở dữ liệu.",
+    "Trang chủ và các tool PDF chạy trong trình duyệt vẫn dùng được.",
     "",
     "Cách bật: Vercel → Project Settings → Environment Variables → thêm",
-    "DATABASE_URL, và NHỚ tick đủ cả Production lẫn Preview, rồi Redeploy.",
-    "Hướng dẫn tạo Postgres: docs/deploy-vercel.md (Bước 1).",
+    "DATABASE_URL, bật cho đúng môi trường rồi Redeploy.",
   ])
 }
 
-// 3. Ổ đĩa Vercel là read-only và mất sau mỗi deploy → lưu ảnh vào ổ đĩa sẽ hỏng.
-//    Không chặn build (có thể người dùng chỉ deploy để dùng tool PDF).
-if (process.env.VERCEL && process.env.STORAGE_DRIVER !== "s3") {
-  warn([
-    `STORAGE_DRIVER đang là "${process.env.STORAGE_DRIVER ?? "(chưa đặt)"}" — trên Vercel phải là "s3".`,
-    "",
-    "Ổ đĩa của Vercel chỉ đọc và bị xoá sau mỗi lần deploy, nên upload ảnh công",
-    "trường sẽ thất bại (hoặc mất ảnh ở lần deploy sau).",
-    "Đặt STORAGE_DRIVER=s3 kèm S3_BUCKET / S3_REGION / S3_ENDPOINT /",
-    "S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY — xem docs/deploy-vercel.md (Bước 2).",
-  ])
-}
-
-// 4. Build Next.js.
+// 3. Build Next.js.
 process.exit(run("npx", ["next", "build"]))

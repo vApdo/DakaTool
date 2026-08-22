@@ -3,13 +3,12 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Wrench, History, HardHat } from "lucide-react"
+import { LayoutDashboard, Wrench, History } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tools", label: "Danh sách Tool", icon: Wrench },
-  { href: "/construction", label: "Quản lý công trình", icon: HardHat },
   { href: "/history", label: "Lịch sử chạy", icon: History },
 ]
 
@@ -30,9 +29,7 @@ export function AppSidebar() {
           const active =
             item.href === "/tools"
               ? pathname === "/tools" || pathname.startsWith("/tools/")
-              : item.href === "/construction"
-                ? pathname.startsWith("/construction")
-                : pathname === item.href
+              : pathname === item.href
           return (
             <Link
               key={item.href}

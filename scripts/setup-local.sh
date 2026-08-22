@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # Cài đặt & khởi động DakaTool trên Ubuntu (WSL2) bằng MỘT lệnh:
 #
-#   curl -fsSL https://raw.githubusercontent.com/vApdo/DakaTool/feat/construction-hqt/scripts/setup-local.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/vApdo/DakaTool/main/scripts/setup-local.sh | bash
 #
-# Gồm cả Auto Subtitle lẫn Quản lý công trình. Muốn nhánh khác:
+# Cài DakaTool và Auto Subtitle. Muốn dùng nhánh khác:
 #   DAKATOOL_BRANCH=feat/auto-subtitle bash -c "$(curl -fsSL .../setup-local.sh)"
 #
 # Script idempotent — chạy lại lần sau chỉ cập nhật code và bật lại app.
 set -euo pipefail
 
 REPO_URL="https://github.com/vApdo/DakaTool"
-BRANCH="${DAKATOOL_BRANCH:-feat/construction-hqt}"
+BRANCH="${DAKATOOL_BRANCH:-main}"
 DIR="$HOME/dakatool"
 COMPOSE_FILE="docker-compose.prod.yml"
 

@@ -8,11 +8,6 @@ DakaTool là bộ công cụ nội bộ (Next.js 14 App Router, TypeScript stric
 2. **Auto Subtitle** (`lib/auto-subtitle/*`, `workers/*`, `services/subtitle-engine/*`):
    luồng động cần Postgres + Redis + worker + engine Python. Xem
    `docs/auto-subtitle-architecture.md`.
-3. **Quản lý công trình** (`lib/construction/*`, `app/(app)/construction/*`): CRUD +
-   upload ảnh, dùng Postgres + storage, **không** cần queue/worker. Phân quyền bằng
-   mã lưu trong `AppSetting` (`requireManager` chặn mọi route ghi). Xem
-   `docs/construction-module.md`.
-
 ## Quy tắc bắt buộc cho Auto Subtitle
 - Node worker gọi Python bằng `spawn(bin, [args], { shell: false })`. **Cấm**
   `exec(\`python ${input}\`)` và `shell: true`.

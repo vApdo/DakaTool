@@ -1,6 +1,6 @@
 /**
  * Tiện ích HTTP chung cho các route handler (JSON response + map lỗi nghiệp vụ).
- * Dùng chung cho Auto Subtitle và Quản lý công trình.
+ * Dùng chung cho các route API phía server.
  */
 import { NextResponse } from "next/server"
 import { ZodError } from "zod"
@@ -51,7 +51,7 @@ export function handleError(err: unknown): NextResponse {
   console.error("[api] Lỗi không xử lý được:", err)
 
   const message = isDatabaseUnavailable(err)
-    ? "Chưa kết nối được cơ sở dữ liệu. Nếu bạn là người cài đặt, kiểm tra biến môi trường DATABASE_URL (xem docs/deploy-vercel.md)."
+    ? "Chưa kết nối được cơ sở dữ liệu. Nếu bạn là người cài đặt, hãy kiểm tra biến môi trường DATABASE_URL."
     : "Lỗi máy chủ. Vui lòng thử lại; nếu vẫn lỗi, báo người quản trị kèm thời điểm gặp lỗi."
   return errorResponse("INTERNAL_ERROR", message, 500)
 }

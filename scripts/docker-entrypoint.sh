@@ -11,8 +11,7 @@ case "$role" in
   app)
     echo "[entrypoint] Áp migration Prisma (migrate deploy)…"
     npx prisma migrate deploy
-    # Seed idempotent (tạo sẵn công trình mẫu nếu chưa có). Lỗi seed không được
-    # chặn app khởi động.
+    # Seed idempotent. Lỗi seed không được chặn app khởi động.
     echo "[entrypoint] Chạy seed dữ liệu khởi tạo…"
     npm run db:seed || echo "[entrypoint] Bỏ qua seed (lỗi không nghiêm trọng)."
     echo "[entrypoint] Khởi động Next trên cổng ${PORT:-3000}…"

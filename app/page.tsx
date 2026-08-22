@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, FileText, HardHat, History } from "lucide-react"
+import { ArrowRight, FileSearch, FileText, History } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AnimatedSection } from "@/components/animated-section"
 import { tools } from "@/lib/data"
@@ -13,10 +13,10 @@ const features = [
     icon: FileText,
   },
   {
-    title: "Theo dõi công trình từ xa.",
+    title: "Trích xuất chứng từ logistics.",
     description:
-      "Nhật ký ảnh từ công trường, tiến độ hạng mục, dự toán chi phí — ban lãnh đạo xem mọi lúc, quản lý cập nhật ngay trên điện thoại.",
-    icon: HardHat,
+      "Đọc House Bill of Lading từ PDF, trích xuất các trường quan trọng để kiểm tra, chỉnh sửa và xuất kết quả ngay trên trình duyệt.",
+    icon: FileSearch,
   },
   {
     title: "Lịch sử chạy rõ ràng.",
@@ -86,8 +86,8 @@ export default function HomePage() {
               Hệ thống <span className="accent-text">tự động hóa</span> nội bộ doanh nghiệp
             </h1>
             <p className="mt-6 max-w-xl text-base text-gray-700 dark:text-[color:var(--muted-foreground)] md:text-lg">
-              DakaTool là nơi cung cấp công cụ tự động hóa công việc hằng ngày — xử lý PDF, trích xuất dữ liệu chứng
-              từ, theo dõi tiến độ công trình — dùng trong nội bộ, không cần cài đặt.
+              DakaTool là nơi cung cấp công cụ tự động hóa công việc hằng ngày — xử lý PDF và trích xuất dữ liệu
+              chứng từ — dùng trong nội bộ, không cần cài đặt.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Link href="/dashboard" className="btn-primary px-8">
