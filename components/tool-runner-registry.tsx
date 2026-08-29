@@ -9,12 +9,14 @@ import { PdfToImagesRunner } from "./pdf/pdf-to-images-runner"
 import { PdfWatermarkRunner } from "./pdf/pdf-watermark-runner"
 import { PdfPageNumbersRunner } from "./pdf/pdf-page-numbers-runner"
 import { PdfSignRunner } from "./pdf/pdf-sign-runner"
+import { PaymentRequestRunner } from "./payment-request-runner"
 
 /**
  * Registry ánh xạ tool id → runner component. Mọi tool trong lib/data.ts phải
  * có runner thật ở đây. Không còn runner mô phỏng.
  */
 const toolRunnerRegistry: Record<string, ComponentType<{ tool: Tool }>> = {
+  "payment-request": PaymentRequestRunner,
   "hbl-pdf-extractor": HblPdfExtractorRunner,
   "pdf-merge": PdfMergeRunner,
   "pdf-splitter": PdfSplitRunner,

@@ -10,6 +10,21 @@ export const CATEGORIES: ToolCategory[] = ["PDF", "Chứng từ"]
  */
 export const tools: Tool[] = [
   {
+    id: "payment-request",
+    name: "Giấy đề nghị thanh toán",
+    description:
+      "Nhập thông tin đề nghị và danh sách hàng hóa theo Mẫu số 05 - TT, tự tính tổng tiền và số tiền bằng chữ, sau đó tải PDF hoặc in trực tiếp trên trình duyệt.",
+    category: "Chứng từ",
+    icon: "ReceiptText",
+    status: "active",
+    inputs: [
+      { name: "requester", label: "Người đề nghị", type: "text", required: true },
+      { name: "department", label: "Bộ phận", type: "text", required: true },
+      { name: "items", label: "Danh sách hàng hóa", type: "textarea", required: true },
+    ],
+    tags: ["thanh toán", "mẫu 05-TT", "chứng từ", "pdf", "in biểu mẫu"],
+  },
+  {
     id: "hbl-pdf-extractor",
     name: "Trích xuất dữ liệu HBL từ PDF",
     description:
