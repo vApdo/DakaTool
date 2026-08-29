@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 /**
  * viewportFit=cover để nội dung không bị "tai thỏ" che trên iPhone.
- * KHÔNG khoá zoom (maximumScale) — người ở công trường cần phóng to xem ảnh chi tiết.
+ * Không khóa zoom để người dùng có thể phóng to nội dung khi cần.
  */
 export const viewport: Viewport = {
   width: "device-width",

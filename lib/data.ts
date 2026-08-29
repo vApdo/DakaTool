@@ -1,24 +1,28 @@
 import type { Tool, ToolCategory } from "./types"
 
-export const CATEGORIES: ToolCategory[] = ["PDF", "Chứng từ", "Video & Content"]
+export const CATEGORIES: ToolCategory[] = ["PDF", "Chứng từ"]
 
 /**
  * Danh sách tool THẬT — mọi tool ở đây đều có runner hoạt động trong
- * components/tool-runner-registry.tsx (hoặc trang riêng như auto-subtitle).
+ * components/tool-runner-registry.tsx.
  * Không đưa tool chưa làm xong vào đây: trang chủ và dashboard đếm trực tiếp
  * từ mảng này để quảng bá, sai là quảng cáo láo.
  */
-const allTools: Tool[] = [
+export const tools: Tool[] = [
   {
-    id: "auto-subtitle",
-    name: "Tự động ghép phụ đề",
+    id: "payment-request",
+    name: "Giấy đề nghị thanh toán",
     description:
-      "Tải video lên, hệ thống tự nhận dạng giọng nói (faster-whisper), tạo phụ đề theo dòng dễ đọc, cho phép chỉnh sửa từng câu và tùy biến kiểu chữ, rồi xuất phụ đề SRT/VTT/ASS hoặc ghép cứng phụ đề vào video MP4.",
-    category: "Video & Content",
-    icon: "Captions",
+      "Nhập thông tin đề nghị và danh sách hàng hóa theo Mẫu số 05 - TT, tự tính tổng tiền và số tiền bằng chữ, sau đó tải PDF hoặc in trực tiếp trên trình duyệt.",
+    category: "Chứng từ",
+    icon: "ReceiptText",
     status: "active",
-    inputs: [{ name: "file", label: "File video (.mp4/.mov/.webm/.mkv)", type: "file", required: true }],
-    tags: ["video", "phụ đề", "subtitle", "whisper", "srt", "ass"],
+    inputs: [
+      { name: "requester", label: "Người đề nghị", type: "text", required: true },
+      { name: "department", label: "Bộ phận", type: "text", required: true },
+      { name: "items", label: "Danh sách hàng hóa", type: "textarea", required: true },
+    ],
+    tags: ["thanh toán", "mẫu 05-TT", "chứng từ", "pdf", "in biểu mẫu"],
   },
   {
     id: "hbl-pdf-extractor",
@@ -126,17 +130,6 @@ const allTools: Tool[] = [
     tags: ["pdf", "chữ ký"],
   },
 ]
-
-/**
- * Auto Subtitle cần worker + Redis nên không chạy được trên Vercel — ẩn khỏi
- * mọi danh sách/số đếm khi build ở đó (cờ inline lúc build, xem next.config.mjs).
- * Bản VPS/local vẫn hiện đầy đủ.
- */
-export const HIDE_AUTO_SUBTITLE = process.env.NEXT_PUBLIC_HIDE_AUTO_SUBTITLE === "1"
-
-export const tools: Tool[] = HIDE_AUTO_SUBTITLE
-  ? allTools.filter((t) => t.id !== "auto-subtitle")
-  : allTools
 
 export function getToolById(id: string): Tool | undefined {
   return tools.find((t) => t.id === id)

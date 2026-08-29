@@ -21,7 +21,7 @@ import {
   Stamp,
   Hash,
   PenLine,
-  Captions,
+  ReceiptText,
   Wrench,
   type LucideIcon,
 } from "lucide-react"
@@ -49,7 +49,7 @@ const icons: Record<string, LucideIcon> = {
   Stamp,
   Hash,
   PenLine,
-  Captions,
+  ReceiptText,
 }
 
 export function ToolIcon({ name, className }: { name: string; className?: string }) {

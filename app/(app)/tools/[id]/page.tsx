@@ -8,8 +8,7 @@ import { ToolRunHistory, ToolRunMeta } from "@/components/tool-run-history"
 import { getToolById, tools } from "@/lib/data"
 
 export function generateStaticParams() {
-  // auto-subtitle có trang riêng (app/(app)/tools/auto-subtitle) — không sinh qua route động.
-  return tools.filter((t) => t.id !== "auto-subtitle").map((t) => ({ id: t.id }))
+  return tools.map((t) => ({ id: t.id }))
 }
 
 export default function ToolRunPage({ params }: { params: { id: string } }) {

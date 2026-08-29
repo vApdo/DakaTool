@@ -1,8 +1,8 @@
 /**
- * Storage abstraction cho Auto Subtitle.
+ * Storage abstraction cho dữ liệu công trình.
  *
- * Mọi truy cập file (video nguồn, kết quả phụ đề, video đã ghép sub) đi qua
- * interface này — code nghiệp vụ không biết đang là đĩa cục bộ hay S3/R2/MinIO.
+ * Mọi truy cập file đi qua interface này — code nghiệp vụ không biết đang là
+ * đĩa cục bộ hay S3/R2/MinIO.
  * Key luôn do server sinh (xem buildStorageKey) — không bao giờ nhận key thô từ client.
  */
 import { randomUUID } from "node:crypto"
@@ -49,7 +49,7 @@ export interface StorageProvider {
 
   /**
    * Đường dẫn cục bộ tuyệt đối tới object, nếu backend hỗ trợ (local).
-   * Worker Node ưu tiên dùng path này để đưa cho FFmpeg/Python thay vì tải qua stream.
+   * Tiến trình server có thể dùng path này thay vì tải lại qua stream.
    * S3 trả undefined → worker phải tải về temp trước.
    */
   getLocalPath?(key: string): string | undefined

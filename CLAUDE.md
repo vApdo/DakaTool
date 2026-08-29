@@ -1,44 +1,25 @@
-# CLAUDE.md — Hướng dẫn cho Claude Code khi làm việc trong repo DakaTool
+# DakaTool — hướng dẫn làm việc
 
-DakaTool là bộ công cụ nội bộ (Next.js 14 App Router, TypeScript strict, Tailwind).
+DakaTool là bộ công cụ nội bộ dùng Next.js 14 App Router, TypeScript strict và Tailwind CSS.
 
-## Hai loại công cụ — đừng trộn lẫn kiến trúc
-1. **Công cụ PDF & tiện ích** (`lib/pdf/*`, `components/pdf/*`): chạy **hoàn toàn
-   client-side** trong trình duyệt, không backend, không DB. Giữ nguyên như vậy.
-2. **Auto Subtitle** (`lib/auto-subtitle/*`, `workers/*`, `services/subtitle-engine/*`):
-   luồng động cần Postgres + Redis + worker + engine Python. Xem
-   `docs/auto-subtitle-architecture.md`.
-3. **Quản lý công trình** (`lib/construction/*`, `app/(app)/construction/*`): CRUD +
-   upload ảnh, dùng Postgres + storage, **không** cần queue/worker. Phân quyền bằng
-   mã lưu trong `AppSetting` (`requireManager` chặn mọi route ghi). Xem
-   `docs/construction-module.md`.
+## Kiến trúc
 
-## Quy tắc bắt buộc cho Auto Subtitle
-- Node worker gọi Python bằng `spawn(bin, [args], { shell: false })`. **Cấm**
-  `exec(\`python ${input}\`)` và `shell: true`.
-- Python engine (`services/subtitle-engine`) **không truy cập DB**. Chỉ đọc file vào,
-  ghi file ra, phát tiến độ **JSON Lines trên stdout**, log ra stderr.
-- Validate mọi input API bằng Zod ở biên (`lib/auto-subtitle/schemas.ts`).
-- Truy cập DB qua `lib/auto-subtitle/repository.ts` (đã gồm kiểm quyền + chống job trùng),
-  không gọi Prisma trực tiếp trong route handler.
-- Không tin MIME/đuôi file client — xác minh bằng ffprobe.
-- Key storage do server sinh (`buildStorageKey`), không nhận key thô từ client.
-- Không nhúng tag/override ASS của người dùng vào phụ đề (escape).
+1. **Công cụ PDF** (`lib/pdf/*`, `components/pdf/*`) chạy hoàn toàn client-side,
+   không backend và không database.
+2. **Quản lý công trình** (`lib/construction/*`, `app/(app)/construction/*`) dùng
+   PostgreSQL và storage. Mã quản lý lưu trong `AppSetting`; mọi route ghi phải gọi
+   `requireManager`. Xem `docs/construction-module.md`.
+3. Danh sách tool là dữ liệu tĩnh trong `lib/data.ts`. Mỗi tool phải có runner thật
+   đăng ký tại `components/tool-runner-registry.tsx`.
 
-## Thư viện Tool
-Danh sách công cụ là **tĩnh** trong `lib/data.ts` (không phải DB). Thêm công cụ mới =
-thêm phần tử vào mảng `tools` (idempotent), không xoá công cụ cũ.
+## Lệnh thường dùng
 
-## Lệnh hay dùng
 ```bash
-npm run dev                 # UI + API
-npm run worker:subtitle     # worker Auto Subtitle
-npm run db:migrate          # prisma migrate deploy
-npm run typecheck           # tsc --noEmit
-npm test                    # vitest (TS)
-npm run test:subtitle-engine# pytest (Python engine)
+npm run dev
+npm run db:migrate
+npm run typecheck
+npm test
+npm run build
 ```
 
-## Trước khi kết thúc thay đổi
-Chạy `npm run typecheck`, `npm test`, `npm run test:subtitle-engine` và `npm run build`.
-Không commit/push khi chưa được yêu cầu.
+Trước khi kết thúc thay đổi, chạy typecheck, test và build.

@@ -1,5 +1,4 @@
-// Prisma schema cho tính năng Auto Subtitle của DakaTool.
-// Chỉ chứa các entity phục vụ Auto Subtitle; các tool PDF client-side không dùng DB.
+// Prisma schema cho các module dùng dữ liệu server-side của DakaTool.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,49 +9,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum ProjectStatus {
-  UPLOADING
-  UPLOADED
-  QUEUED
-  EXTRACTING_AUDIO
-  TRANSCRIBING
-  FORMATTING
-  READY
-  RENDERING
-  COMPLETED
-  FAILED
-}
-
-enum JobType {
-  TRANSCRIBE
-  RENDER_VIDEO
-  GENERATE_EXPORT
-}
-
-enum JobStatus {
-  QUEUED
-  ACTIVE
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-enum ExportType {
-  SRT
-  VTT
-  ASS
-  BURNED_MP4
-}
-
-enum ExportStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-}
-
-/// Cấu hình toàn cục dạng key-value (provider nhận dạng, model, API key AI…).
-/// Chỉ đọc/ghi phía server; API key KHÔNG bao giờ trả về client.
+/// Cấu hình nội bộ dạng key-value, chỉ đọc/ghi phía server.
 model AppSetting {
   key       String   @id
   value     String
@@ -174,91 +131,6 @@ model ConstructionFile {
   createdAt  DateTime             @default(now())
 
   project ConstructionProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-}
-
-model SubtitleProject {
-  id                String        @id @default(cuid())
-  ownerId           String?
-  title             String
-  sourceFilename    String
-  sourceMimeType    String
-  sourceSizeBytes   BigInt
-  sourceStorageKey  String
-  durationMs        Int?
-  detectedLanguage  String?
-  requestedLanguage String
-  /// Tách giọng nói khỏi nhạc nền (Demucs) trước khi nhận dạng — cho video nhạc to/bài hát.
-  separateVocals    Boolean       @default(false)
-  status            ProjectStatus @default(UPLOADING)
-  progress          Int           @default(0)
-  errorCode         String?
-  errorMessage      String?
-  subtitleStyle     Json
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  completedAt       DateTime?
-
-  segments SubtitleSegment[]
-  jobs     SubtitleJob[]
-  exports  SubtitleExport[]
-
-  @@index([createdAt])
-}
-
-model SubtitleSegment {
-  id        String   @id @default(cuid())
-  projectId String
-  order     Int
-  startMs   Int
-  endMs     Int
-  text      String
-  speaker   String?
-  words     Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  project SubtitleProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([projectId, order])
-  @@index([projectId])
-}
-
-model SubtitleJob {
-  id           String    @id @default(cuid())
-  projectId    String
-  bullJobId    String?
-  type         JobType
-  status       JobStatus @default(QUEUED)
-  progress     Int       @default(0)
-  attempts     Int       @default(0)
-  errorCode    String?
-  errorMessage String?
-  startedAt    DateTime?
-  completedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  project SubtitleProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-}
-
-model SubtitleExport {
-  id           String       @id @default(cuid())
-  projectId    String
-  type         ExportType
-  status       ExportStatus @default(PENDING)
-  storageKey   String?
-  filename     String
-  mimeType     String
-  sizeBytes    BigInt?
-  errorMessage String?
-  createdAt    DateTime     @default(now())
-  completedAt  DateTime?
-
-  project SubtitleProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
 }
