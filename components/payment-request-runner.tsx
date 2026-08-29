@@ -601,7 +601,7 @@ export function PaymentRequestRunner({ tool }: { tool: Tool }) {
                           </td>
                           <td><input aria-label={`Đơn vị tính dòng ${index + 1}`} value={item.unit} onChange={(event) => updateItem(item.id, { unit: event.target.value })} placeholder="cái" className="payment-cell-input" /></td>
                           <td><input aria-label={`Số lượng dòng ${index + 1}`} type="number" inputMode="decimal" min={0} step="any" value={item.quantity} onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) })} className="payment-cell-input payment-number-input" /></td>
-                          <td><input aria-label={`Đơn giá dòng ${index + 1}`} type="number" inputMode="numeric" min={0} step={1000} value={item.unitPrice || ""} onChange={(event) => updateItem(item.id, { unitPrice: Number(event.target.value) })} placeholder="0" className="payment-cell-input payment-number-input" /></td>
+                          <td><input aria-label={`Đơn giá dòng ${index + 1}`} type="number" inputMode="numeric" min={0} step={1000} value={item.unitPrice || ""} onChange={(event) => updateItem(item.id, { unitPrice: Number(event.target.value) })} placeholder="0" className="payment-cell-input payment-number-input payment-price-input" /></td>
                           <td><input aria-label={`Ghi chú dòng ${index + 1}`} value={item.note} onChange={(event) => updateItem(item.id, { note: event.target.value })} className="payment-cell-input" /></td>
                           <td className="payment-row-total">{formatVnd(calculateItemTotal(item))} ₫</td>
                           <td>
@@ -641,7 +641,7 @@ export function PaymentRequestRunner({ tool }: { tool: Tool }) {
                       <div className="mt-3 grid grid-cols-[1fr_0.8fr_1.35fr] gap-2">
                         <div><label htmlFor={`pr-unit-mobile-${item.id}`} className="field-label">ĐVT</label><input id={`pr-unit-mobile-${item.id}`} value={item.unit} onChange={(event) => updateItem(item.id, { unit: event.target.value })} placeholder="cái" className="field-input min-h-11 px-2" /></div>
                         <div><label htmlFor={`pr-quantity-mobile-${item.id}`} className="field-label">SL</label><input id={`pr-quantity-mobile-${item.id}`} type="number" inputMode="decimal" min={0} step="any" value={item.quantity} onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) })} className="field-input min-h-11 px-2" /></div>
-                        <div><label htmlFor={`pr-price-mobile-${item.id}`} className="field-label">Đơn giá</label><input id={`pr-price-mobile-${item.id}`} type="number" inputMode="numeric" min={0} step={1000} value={item.unitPrice || ""} onChange={(event) => updateItem(item.id, { unitPrice: Number(event.target.value) })} placeholder="0" className="field-input min-h-11 px-2" /></div>
+                        <div><label htmlFor={`pr-price-mobile-${item.id}`} className="field-label">Đơn giá</label><input id={`pr-price-mobile-${item.id}`} type="number" inputMode="numeric" min={0} step={1000} value={item.unitPrice || ""} onChange={(event) => updateItem(item.id, { unitPrice: Number(event.target.value) })} placeholder="0" className="field-input payment-price-input min-h-11 px-2" /></div>
                       </div>
                       <details className="payment-note-details">
                         <summary>Ghi chú <span>(tùy chọn)</span></summary>
@@ -712,6 +712,9 @@ export function PaymentRequestRunner({ tool }: { tool: Tool }) {
           .payment-cell-input { width: 100%; min-height: 38px; border: 1px solid transparent; border-radius: 7px; background: var(--background); padding: 7px 8px; color: var(--foreground); font-size: 12px; outline: none; transition: border-color 160ms ease, box-shadow 160ms ease; }
           .payment-cell-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
           .payment-number-input { text-align: right; font-variant-numeric: tabular-nums; }
+          .payment-price-input { appearance: textfield; -moz-appearance: textfield; }
+          .payment-price-input::-webkit-inner-spin-button,
+          .payment-price-input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
           .payment-cell-error { display: block; margin: 4px 4px 0; color: #dc2626; font-size: 10px; font-weight: 600; }
           .dark .payment-cell-error { color: #f87171; }
           .payment-row-total { padding-top: 16px !important; color: var(--foreground); font-size: 12px; font-weight: 700; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
