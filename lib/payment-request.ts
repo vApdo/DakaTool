@@ -29,6 +29,11 @@ export const COMPANY_PROFILES: CompanyProfile[] = [
     name: "CÔNG TY CỔ PHẦN KỸ THUẬT CÔNG NGHỆ HQT",
     address: "Cụm CN Làng nghề Minh Phương - Nguyệt Đức - Phú Thọ",
   },
+  {
+    id: "nqy-service",
+    name: "CÔNG TY TNHH NQY SERVICE",
+    address: "Asia Group Building 3F, Lô 787 KĐT Nam Vĩnh Yên, P. Vĩnh Phúc, T. Phú Thọ",
+  },
 ]
 
 export const DEFAULT_REQUESTERS = ["Nguyễn Đăng Vít", "Trần Thị Phương Thảo", "Bùi Thị Thúy Nga"]
