@@ -56,6 +56,11 @@ describe("payment request helpers", () => {
         name: "CÔNG TY CỔ PHẦN KỸ THUẬT CÔNG NGHỆ HQT",
         address: "Cụm CN Làng nghề Minh Phương - Nguyệt Đức - Phú Thọ",
       },
+      {
+        id: "nqy-service",
+        name: "CÔNG TY TNHH NQY SERVICE",
+        address: "Asia Group Building 3F, Lô 787 KĐT Nam Vĩnh Yên, P. Vĩnh Phúc, T. Phú Thọ",
+      },
     ])
   })
 })
