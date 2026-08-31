@@ -1,8 +1,11 @@
 "use client"
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import { useSearchParams } from "next/navigation"
 import { Download, Eye, FilePenLine, PencilLine, Plus, Printer, ReceiptText, Trash2 } from "lucide-react"
+import { AccessGate } from "@/components/access-gate"
 import type { Tool } from "@/lib/types"
+import { createPaymentHistoryRecord, getPaymentHistoryRecord } from "@/lib/payment-history/client"
 import {
   calculateItemTotal,
   calculatePaymentTotal,
@@ -256,7 +259,9 @@ function hasFormErrors(errors: FormErrors) {
   return Boolean(errors.requesterName || errors.department || Object.keys(errors.items).length)
 }
 
-export function PaymentRequestRunner({ tool }: { tool: Tool }) {
+function PaymentRequestRunnerContent({ tool }: { tool: Tool }) {
+  const searchParams = useSearchParams()
+  const reuseHistoryId = searchParams.get("reuse")
   const [data, setData] = useState<PaymentRequestData>(createInitialData)
   const [state, setState] = useToolRunState(tool)
   const [companyProfileId, setCompanyProfileId] = useState(COMPANY_PROFILES[0].id)
@@ -264,12 +269,43 @@ export function PaymentRequestRunner({ tool }: { tool: Tool }) {
   const [isCompanyCustomized, setIsCompanyCustomized] = useState(false)
   const [mobileView, setMobileView] = useState<"form" | "preview">("form")
   const [errors, setErrors] = useState<FormErrors>({ items: {} })
+  const [restoreNotice, setRestoreNotice] = useState<string | null>(null)
   const total = useMemo(() => calculatePaymentTotal(data.items), [data.items])
   const recipient = paymentRecipient(data.companyName)
 
   useEffect(() => {
     setData((current) => ({ ...current, requestDate: todayIso() }))
   }, [])
+
+  useEffect(() => {
+    if (!reuseHistoryId) return
+    let active = true
+    setRestoreNotice("Đang lấy dữ liệu phiếu cũ...")
+    getPaymentHistoryRecord(reuseHistoryId)
+      .then((record) => {
+        if (!active) return
+        const company = COMPANY_PROFILES.find(
+          (profile) => profile.name === record.data.companyName && profile.address === record.data.companyAddress,
+        )
+        setData({
+          ...record.data,
+          requestDate: todayIso(),
+          items: record.data.items.map((item) => ({ ...item, id: crypto.randomUUID() })),
+        })
+        if (company) setCompanyProfileId(company.id)
+        setIsCompanyCustomized(!company)
+        setIsEditingCompany(false)
+        setErrors({ items: {} })
+        setRestoreNotice("Đã dùng lại dữ liệu phiếu cũ. Ngày đề nghị được cập nhật thành hôm nay.")
+      })
+      .catch((reason: unknown) => {
+        if (!active) return
+        setRestoreNotice(reason instanceof Error ? reason.message : "Không tải được dữ liệu phiếu cũ.")
+      })
+    return () => {
+      active = false
+    }
+  }, [reuseHistoryId])
 
   function update<K extends keyof PaymentRequestData>(key: K, value: PaymentRequestData[K]) {
     setData((current) => ({ ...current, [key]: value }))
@@ -331,6 +367,15 @@ export function PaymentRequestRunner({ tool }: { tool: Tool }) {
     return generatePaymentRequestPdf(documentData())
   }
 
+  async function saveHistory(action: "download" | "print"): Promise<string | null> {
+    try {
+      await createPaymentHistoryRecord({ action, data: documentData() })
+      return null
+    } catch (reason) {
+      return reason instanceof Error ? reason.message : "Không lưu được lịch sử phiếu."
+    }
+  }
+
   async function handleDownload() {
     if (!validateAndFocus()) return
     setState({ step: "working", message: "Đang tạo giấy đề nghị thanh toán..." })
@@ -338,17 +383,29 @@ export function PaymentRequestRunner({ tool }: { tool: Tool }) {
       const bytes = await createPdf()
       const fileName = `giay-de-nghi-thanh-toan-${data.requestDate || "moi"}.pdf`
       downloadBytes(fileName, bytes, "application/pdf")
-      setState({ step: "done", message: `Đã tạo và tải xuống "${fileName}".` })
+      const historyError = await saveHistory("download")
+      setState({
+        step: "done",
+        message: historyError
+          ? `Đã tải "${fileName}", nhưng chưa lưu được lịch sử: ${historyError}`
+          : `Đã tải "${fileName}" và lưu vào lịch sử.`,
+      })
     } catch (error) {
       setState({ step: "error", message: errorMessage(error) })
     }
   }
 
-  function handlePrint() {
+  async function handlePrint() {
     if (!validateAndFocus()) return
     setState({ step: "working", message: "Đang mở hộp thoại in..." })
     window.print()
-    setState({ step: "done", message: "Đã mở hộp thoại in của trình duyệt." })
+    const historyError = await saveHistory("print")
+    setState({
+      step: "done",
+      message: historyError
+        ? `Đã mở hộp thoại in, nhưng chưa lưu được lịch sử: ${historyError}`
+        : "Đã mở hộp thoại in và lưu phiếu vào lịch sử.",
+    })
   }
 
   function validateRequester() {
@@ -386,6 +443,11 @@ export function PaymentRequestRunner({ tool }: { tool: Tool }) {
 
   return (
     <>
+      {restoreNotice && (
+        <div role="status" className="mb-4 rounded-xl border border-[color:var(--card-border)] bg-[color:var(--primary-soft)] px-4 py-3 text-sm text-[color:var(--foreground)]">
+          {restoreNotice}
+        </div>
+      )}
       <div className="payment-mobile-tabs" role="tablist" aria-label="Chế độ hiển thị">
         <button
           type="button"
@@ -778,5 +840,13 @@ export function PaymentRequestRunner({ tool }: { tool: Tool }) {
         `}</style>
       </div>
     </>
+  )
+}
+
+export function PaymentRequestRunner({ tool }: { tool: Tool }) {
+  return (
+    <AccessGate>
+      <PaymentRequestRunnerContent tool={tool} />
+    </AccessGate>
   )
 }
