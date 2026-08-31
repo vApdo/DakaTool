@@ -16,6 +16,34 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 }
 
+/// Giới hạn số lần nhập sai mã truy cập theo IP trên môi trường serverless.
+model AppAccessAttempt {
+  ip        String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+}
+
+enum PaymentRequestAction {
+  DOWNLOAD
+  PRINT
+}
+
+/// Ảnh chụp dữ liệu của một phiếu tại thời điểm tải PDF hoặc in.
+model PaymentRequestHistory {
+  id            String               @id @default(cuid())
+  action        PaymentRequestAction
+  requestDate   String
+  requesterName String
+  department    String
+  companyName   String
+  totalVnd      BigInt
+  snapshot      Json
+  createdAt     DateTime             @default(now())
+
+  @@index([createdAt])
+}
+
 // ===== Quản lý công trình xây dựng (Xưởng cơ khí HQT) =====
 
 /// Đếm số lần nhập sai mã quản lý theo IP, để chống dò mã.
