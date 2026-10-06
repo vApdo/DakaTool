@@ -20,11 +20,11 @@ describe("payment request helpers", () => {
   })
 
   it.each([
-    [0, "Không đồng chẵn"],
-    [15, "Mười lăm đồng chẵn"],
-    [105, "Một trăm lẻ năm đồng chẵn"],
-    [1_250_000, "Một triệu hai trăm năm mươi nghìn đồng chẵn"],
-    [5_850_000, "Năm triệu tám trăm năm mươi nghìn đồng chẵn"],
+    [0, "Không đồng"],
+    [15, "Mười lăm đồng"],
+    [105, "Một trăm lẻ năm đồng"],
+    [1_250_000, "Một triệu hai trăm năm mươi nghìn đồng"],
+    [5_850_000, "Năm triệu tám trăm năm mươi nghìn đồng"],
   ])("writes %i VND in Vietnamese", (value, expected) => {
     expect(numberToVietnameseWords(value)).toBe(expected)
   })
@@ -38,7 +38,7 @@ describe("payment request helpers", () => {
   })
 
   it("provides the approved requester, department, and company catalogs", () => {
-    expect(DEFAULT_REQUESTERS).toEqual(["Nguyễn Đăng Vít", "Trần Thị Phương Thảo", "Bùi Thị Thúy Nga"])
+    expect(DEFAULT_REQUESTERS).toEqual(["Nguyễn Đăng Vít", "Trần Thị Phương Thảo", "Nguyễn Thị Mai"])
     expect(DEFAULT_DEPARTMENTS).toEqual(["Kế hoạch & Tổng hợp", "Marketing", "HCNS"])
     expect(COMPANY_PROFILES).toEqual([
       {

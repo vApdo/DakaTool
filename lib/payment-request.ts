@@ -36,7 +36,7 @@ export const COMPANY_PROFILES: CompanyProfile[] = [
   },
 ]
 
-export const DEFAULT_REQUESTERS = ["Nguyễn Đăng Vít", "Trần Thị Phương Thảo", "Bùi Thị Thúy Nga"]
+export const DEFAULT_REQUESTERS = ["Nguyễn Đăng Vít", "Trần Thị Phương Thảo", "Nguyễn Thị Mai"]
 
 export const DEFAULT_DEPARTMENTS = ["Kế hoạch & Tổng hợp", "Marketing", "HCNS"]
 
@@ -100,7 +100,7 @@ function readThreeDigits(value: number, full: boolean): string {
 
 export function numberToVietnameseWords(value: number): string {
   const rounded = Math.max(0, Math.round(value))
-  if (rounded === 0) return "Không đồng chẵn"
+  if (rounded === 0) return "Không đồng"
 
   const groups: number[] = []
   let remaining = rounded
@@ -119,7 +119,7 @@ export function numberToVietnameseWords(value: number): string {
   }
 
   const sentence = words.join(" ").replace(/\s+/g, " ").trim()
-  return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} đồng chẵn`
+  return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} đồng`
 }
 
 export function formatVietnameseDate(dateValue: string): string {
