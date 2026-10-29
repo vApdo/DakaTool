@@ -5,7 +5,7 @@ import { ArrowRight, Wrench, PlayCircle, CheckCircle2, FileText } from "lucide-r
 import { RunStatusBadge } from "@/components/status-badge"
 import { ToolIcon } from "@/components/tool-icon"
 import { AnimatedSection } from "@/components/animated-section"
-import { tools, formatDateTime } from "@/lib/data"
+import { tools, formatDateTime, getToolById } from "@/lib/data"
 import { useRunHistory } from "@/lib/run-history"
 
 /** Nội dung dashboard với số liệu chạy THẬT từ lịch sử trên trình duyệt. */
@@ -21,15 +21,14 @@ export function DashboardContent() {
     .map((t) => ({ tool: t, count: countByTool.get(t.id) ?? 0 }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 4)
-  const recentRuns = runs.slice(0, 5)
-
-  const pdfTools = tools.filter((t) => t.category === "PDF" || t.category === "Chứng từ")
+  // Lịch sử trên trình duyệt có thể còn lượt chạy của các tool đã gỡ — ẩn đi để không dẫn tới trang 404.
+  const recentRuns = runs.filter((run) => getToolById(run.toolId)).slice(0, 5)
 
   const stats = [
     { label: "Tool sẵn sàng", value: String(activeTools.length), icon: Wrench },
     { label: "Lượt chạy trên trình duyệt này", value: String(runs.length), icon: PlayCircle },
     { label: "Tỷ lệ thành công", value: successRate === null ? "—" : `${successRate}%`, icon: CheckCircle2 },
-    { label: "Tool xử lý PDF", value: String(pdfTools.length), icon: FileText },
+    { label: "Mẫu chứng từ", value: "05-TT", icon: FileText },
   ]
 
   return (
@@ -59,8 +58,8 @@ export function DashboardContent() {
           </div>
           {recentRuns.length === 0 ? (
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Chưa có lần chạy nào trên trình duyệt này. Hãy chạy thử một tool trong nhóm PDF hoặc Chứng từ —
-              kết quả sẽ hiện ở đây.
+              Chưa có lần chạy nào trên trình duyệt này. Hãy lập thử một giấy đề nghị thanh toán — kết quả sẽ
+              hiện ở đây.
             </p>
           ) : (
             <ul className="divide-y divide-[color:var(--card-border)]">
