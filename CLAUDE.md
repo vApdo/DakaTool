@@ -4,8 +4,8 @@ DakaTool là bộ công cụ nội bộ dùng Next.js 14 App Router, TypeScript 
 
 ## Kiến trúc
 
-1. **Công cụ PDF** (`lib/pdf/*`, `components/pdf/*`) chạy hoàn toàn client-side,
-   không backend và không database.
+1. **Giấy đề nghị thanh toán** là tool duy nhất (`lib/payment-request.ts`, PDF ở
+   `lib/pdf/payment-request.ts`, lịch sử ở `lib/payment-history/*` trên Supabase).
 2. **Quản lý công trình** (`lib/construction/*`, `app/(app)/construction/*`) dùng
    PostgreSQL và storage. Mã quản lý lưu trong `AppSetting`; mọi route ghi phải gọi
    `requireManager`. Xem `docs/construction-module.md`.

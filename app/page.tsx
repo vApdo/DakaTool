@@ -1,17 +1,11 @@
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, FileText, History, ReceiptText } from "lucide-react"
+import { ArrowRight, History, ReceiptText } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AnimatedSection } from "@/components/animated-section"
 import { tools } from "@/lib/data"
 
 const features = [
-  {
-    title: "Xử lý PDF trọn bộ.",
-    description:
-      "Ghép, tách, sắp xếp, ký tên, đóng dấu, đánh số trang, chuyển đổi ảnh — chạy ngay trên trình duyệt, file không rời máy bạn.",
-    icon: FileText,
-  },
   {
     title: "Tạo chứng từ theo biểu mẫu.",
     description:
@@ -58,7 +52,6 @@ function HeroBackdrop() {
 
 export default function HomePage() {
   const activeTools = tools.filter((t) => t.status === "active").length
-  const pdfTools = tools.filter((t) => t.category === "PDF").length
 
   return (
     <div className="container">
@@ -86,8 +79,8 @@ export default function HomePage() {
               Hệ thống <span className="accent-text">tự động hóa</span> nội bộ doanh nghiệp
             </h1>
             <p className="mt-6 max-w-xl text-base text-gray-700 dark:text-[color:var(--muted-foreground)] md:text-lg">
-              DakaTool là nơi cung cấp công cụ tự động hóa công việc hằng ngày — xử lý PDF, trích xuất dữ liệu chứng
-              từ và tạo biểu mẫu nội bộ — dùng trực tiếp trên trình duyệt, không cần cài đặt.
+              DakaTool là nơi cung cấp công cụ tự động hóa công việc hằng ngày — tạo chứng từ và biểu mẫu nội
+              bộ — dùng trực tiếp trên trình duyệt, không cần cài đặt.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Link href="/dashboard" className="btn-primary px-8">
@@ -102,14 +95,6 @@ export default function HomePage() {
               <div>
                 <dd className="text-3xl font-semibold text-black dark:text-white">{activeTools}</dd>
                 <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Tool sẵn sàng</dt>
-              </div>
-              <div>
-                <dd className="text-3xl font-semibold text-black dark:text-white">{pdfTools}</dd>
-                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Tool xử lý PDF</dt>
-              </div>
-              <div>
-                <dd className="text-3xl font-semibold text-black dark:text-white">100%</dd>
-                <dt className="mt-1 text-gray-600 dark:text-[color:var(--muted)]">Tool PDF chạy ngay trên trình duyệt</dt>
               </div>
             </dl>
           </div>
@@ -126,7 +111,7 @@ export default function HomePage() {
             kết quả ghi lại rõ ràng.
           </p>
         </AnimatedSection>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {features.map((f, i) => (
             <AnimatedSection key={f.title} delay={0.1 + i * 0.1}>
               <div className="card h-full p-6">
