@@ -1,6 +1,6 @@
 # DakaTool
 
-Công cụ nội bộ do **VÍT APDO** xây dựng cho **ASIA GROUP** — hiện chỉ gồm một tool: **Giấy đề nghị thanh toán** (Mẫu 05-TT).
+Nền tảng nội bộ để tạo, quản lý và chạy các tool xử lý công việc — hiện có một tool: **Giấy đề nghị thanh toán** (Mẫu 05-TT).
 
 ## Yêu cầu & lệnh
 

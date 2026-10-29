@@ -1,6 +1,6 @@
 # DakaTool — hướng dẫn làm việc
 
-DakaTool là công cụ nội bộ do VÍT APDO xây dựng cho ASIA GROUP, dùng Next.js 14 App Router, TypeScript strict và Tailwind CSS.
+DakaTool là bộ công cụ nội bộ dùng Next.js 14 App Router, TypeScript strict và Tailwind CSS.
 
 ## Kiến trúc
 

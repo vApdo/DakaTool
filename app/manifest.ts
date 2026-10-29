@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "DakaTool — Công cụ nội bộ",
     short_name: "DakaTool",
-    description: "Công cụ lập giấy đề nghị thanh toán cho ASIA GROUP.",
+    description: "Tạo và chạy các công cụ tự động hóa công việc nội bộ.",
     start_url: "/dashboard",
     display: "standalone",
     background_color: "#0f1211",

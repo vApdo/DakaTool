@@ -5,9 +5,9 @@ import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "DakaTool — Công cụ nội bộ ASIA GROUP",
+  title: "DakaTool - Nền tảng tool tự động hóa nội bộ",
   description:
-    "Công cụ lập giấy đề nghị thanh toán cho ASIA GROUP, xây dựng bởi VÍT APDO.",
+    "DakaTool giúp bạn tạo, quản lý và chạy các tool tự động hóa công việc hằng ngày — dùng nội bộ, không cần code lại từ đầu.",
   // Bản nội bộ: không cho công cụ tìm kiếm đánh chỉ mục (xem thêm app/robots.ts).
   robots: { index: false, follow: false },
   // Cho phép cài lên màn hình chính điện thoại (PWA).
