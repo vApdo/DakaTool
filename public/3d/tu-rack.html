@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tủ rack tối ưu 3D</title>
+<style>
+  :root { --bg:#eef1f4; --panel:#ffffff; --text:#1d2329; --muted:#5b6670; --accent:#e8740c; --line:#d5dbe0; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14181c; --panel:#1f252b; --text:#e8ecef; --muted:#9aa5ae; --line:#333b43; }
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow:hidden; }
+  #view { position:fixed; inset:0; }
+  .ui { position:fixed; top:12px; left:12px; width:300px; max-width:calc(100vw - 24px);
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+    box-shadow:0 4px 18px rgba(0,0,0,.12); max-height:calc(100vh - 24px); overflow:auto; }
+  h1 { font-size:15px; margin:0 0 2px; }
+  .sub { font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  button { font:inherit; font-size:12px; padding:6px 9px; border-radius:6px; border:1px solid var(--line);
+    background:transparent; color:var(--text); cursor:pointer; }
+  button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .sec { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:10px 0 4px; }
+  ul { list-style:none; margin:0; padding:0; font-size:12px; }
+  li { display:flex; align-items:center; gap:6px; padding:2px 0; cursor:pointer; }
+  li:hover { color:var(--accent); }
+  .sw { width:12px; height:12px; border-radius:2px; border:1px solid rgba(0,0,0,.25); flex:none; }
+  .dims { font-size:12px; line-height:1.5; }
+  #tip { position:fixed; pointer-events:none; background:rgba(20,24,28,.92); color:#fff; font-size:12px;
+    padding:5px 8px; border-radius:5px; display:none; max-width:260px; z-index:5; }
+  .hint { position:fixed; right:12px; bottom:12px; font-size:11px; color:var(--muted);
+    background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px 8px; }
+  #toggleUi { position:fixed; top:12px; right:12px; display:none; }
+  @media (max-width:600px) {
+    .ui { width:auto; right:12px; max-height:45vh; }
+    #toggleUi { display:block; z-index:4; background:var(--panel); }
+    .ui.hidden { display:none; }
+    .hint { display:none; }
+  }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<button id="toggleUi">Bảng điều khiển</button>
+<div class="ui" id="ui">
+  <h1>Tủ thiết bị mạng tự chế</h1>
+  <div class="sub">Phương án tối ưu sắt: 1 cây sắt hộp 20×20 · ván 15 mm · 12U</div>
+
+  <div class="sec">Thao tác</div>
+  <div class="row">
+    <button id="bDoor">Mở cánh</button>
+    <button id="bWood" class="on">Ván ốp</button>
+    <button id="bEq" class="on">Thiết bị</button>
+    <button id="bWall" class="on">Tường</button>
+  </div>
+  <div class="sec">Góc nhìn</div>
+  <div class="row">
+    <button data-view="iso">3D</button>
+    <button data-view="front">Trước</button>
+    <button data-view="side">Cạnh</button>
+    <button data-view="top">Nóc</button>
+  </div>
+
+  <div class="sec">Kích thước</div>
+  <div class="dims">
+    Ngoài: R 560 × C 680 × S 490 mm<br>
+    Khung sắt: 530 × 650 × 380 mm (12 thanh, 1 cây 6 m)<br>
+    Ray 19" (chỉ ray trước): tâm lỗ 465 · thông thủy 450 · 12U = 533 mm<br>
+    Ván hông nhô trước khung 80 mm cho dây nhảy + cánh
+  </div>
+
+  <div class="sec">Thiết bị (bấm để làm nổi bật)</div>
+  <ul id="list"></ul>
+</div>
+<div id="tip"></div>
+<div class="hint">Kéo chuột trái: xoay · Kéo chuột phải: dời · Lăn: phóng to</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  const S = 0.01; // 1 mm = 0.01 đơn vị
+  const FW = 530, FH = 650, FD = 380, T = 20, V = 15;
+  const U = 44.45, RAIL_H = 12 * U, RAIL_BOT = 40;
+  const RF = 80;               // mặt trước khung sắt lùi sau mép ván 80 mm
+  const SIDE_D = RF + FD + V;  // 475
+  const POST_IN = 490, OPEN = 450;
+  const CX = FW / 2;
+
+  const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const view = document.getElementById('view');
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  view.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(dark ? 0x14181c : 0xeef1f4);
+  const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 200);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  const target = new THREE.Vector3(CX * S, FH / 2 * S, -240 * S);
+  controls.target.copy(target);
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.75));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.75);
+  sun.position.set(8, 14, 12); sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  scene.add(sun);
+
+  // helpers --------------------------------------------------------------
+  const groups = { frame: new THREE.Group(), wood: new THREE.Group(), eq: new THREE.Group(), wall: new THREE.Group(), door: new THREE.Group() };
+  Object.values(groups).forEach(g => scene.add(g));
+  const pickables = [];
+
+  function box(x0, y0, z0, x1, y1, z1, mat, group, info) {
+    const w = Math.abs(x1 - x0), h = Math.abs(y1 - y0), d = Math.abs(z1 - z0);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w * S, h * S, d * S), mat);
+    m.position.set((x0 + x1) / 2 * S, (y0 + y1) / 2 * S, (z0 + z1) / 2 * S);
+    m.castShadow = true; m.receiveShadow = true;
+    (group || scene).add(m);
+    if (info) { m.userData.info = info; pickables.push(m); }
+    return m;
+  }
+  const steel = new THREE.MeshStandardMaterial({ color: 0x3a4148, metalness: 0.6, roughness: 0.45 });
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x15181b, metalness: 0.7, roughness: 0.35 });
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0xd6ad78, roughness: 0.8, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+  const doorWood = new THREE.MeshStandardMaterial({ color: 0xd6ad78, roughness: 0.8 });
+
+  // tube helpers (sắt hộp 20x20): z âm = vào trong
+  const tubeInfo = 'Sắt hộp 20×20×1,2 mm';
+  const tY = (x, z, y0, y1, info) => box(x, y0, -z, x + T, y1, -(z + T), steel, groups.frame, info || tubeInfo);
+  const tX = (y, z, x0, x1, info) => box(x0, y, -z, x1, y + T, -(z + T), steel, groups.frame, info || tubeInfo);
+  const tZ = (x, y, z0, z1, info) => box(x, y, -z0, x + T, y + T, -z1, steel, groups.frame, info || tubeInfo);
+
+  // ===== KHUNG: hộp chữ nhật 12 thanh =====
+  const zF = RF, zB = RF + FD - T;
+  [0, FW - T].forEach(x => [zF, zB].forEach(z => tY(x, z, 0, FH, z === zF ? 'Trụ trước = trụ bắt ray · 650 mm' : 'Trụ sau · 650 mm')));
+  [0, FH - T].forEach(y => {
+    [zF, zB].forEach(z => tX(y, z, T, FW - T, z === zB ? 'Thanh ngang sau · 490 mm (bắt bu lông treo tường)' : 'Thanh ngang trước · 490 mm'));
+    [0, FW - T].forEach(x => tZ(x, y, zF + T, zB, 'Thanh ngang sâu · 340 mm'));
+  });
+  // ray 19" (chỉ ray trước, bắt vào mặt trong trụ trước)
+  const railBot = RAIL_BOT, railTop = railBot + RAIL_H;
+  box(T, railBot, -RF + 0.5, CX - OPEN / 2, railTop, -(RF + 2), railMat, groups.frame, 'Thanh ray rack 19" 12U');
+  box(CX + OPEN / 2, railBot, -RF + 0.5, FW - T, railTop, -(RF + 2), railMat, groups.frame, 'Thanh ray rack 19" 12U');
+
+  // ===== VÁN 15 mm =====
+  const wInfo = 'Ván 15 mm';
+  box(-V, 0, 0, 0, FH, -SIDE_D, woodMat, groups.wood, wInfo + ' · hông 475×650 (nhô trước khung 80)');
+  box(FW, 0, 0, FW + V, FH, -SIDE_D, woodMat, groups.wood, wInfo + ' · hông 475×650 (nhô trước khung 80)');
+  box(-V, FH, 0, FW + V, FH + V, -SIDE_D, woodMat, groups.wood, wInfo + ' · nóc 560×475 (lỗ quạt + 2 khe cáp)');
+  box(-V, -V, 0, FW + V, 0, -SIDE_D, woodMat, groups.wood, wInfo + ' · đáy 560×475');
+  box(0, 0, -(RF + FD), FW, FH, -SIDE_D, woodMat, groups.wood, wInfo + ' · lưng 530×650');
+  // ke góc nối ván phần nhô
+  const keMat = new THREE.MeshStandardMaterial({ color: 0x777f87, metalness: 0.6, roughness: 0.4 });
+  [[0, 0], [0, FH - 30], [FW - 30, 0], [FW - 30, FH - 30]].forEach(([x, y]) => box(x, y, -20, x + 30, y + 30, -50, keMat, groups.wood, 'Ke góc L 30×30'));
+
+  // quạt + khe cáp trên nóc
+  const fanMat = new THREE.MeshStandardMaterial({ color: 0x22272c, roughness: 0.5 });
+  const fanZ = SIDE_D - 230;
+  {
+    const f = new THREE.Mesh(new THREE.CylinderGeometry(60 * S, 60 * S, 25 * S, 32), fanMat);
+    f.position.set(CX * S, (FH - 13) * S, -fanZ * S);
+    f.userData.info = 'Quạt 120 mm 220 V · hút ra'; pickables.push(f);
+    groups.eq.add(f);
+    const g = new THREE.Mesh(new THREE.TorusGeometry(52 * S, 3 * S, 8, 32), steel);
+    g.rotation.x = Math.PI / 2; g.position.set(CX * S, (FH + V + 1) * S, -fanZ * S);
+    groups.wood.add(g);
+  }
+  const slotMat = new THREE.MeshStandardMaterial({ color: 0x4d7cc7, roughness: 0.6 });
+  [CX - 140, CX + 140].forEach(x => box(x - 70, FH + V, -(SIDE_D - 85), x + 70, FH + V + 2, -(SIDE_D - 35), slotMat, groups.wood, 'Khe luồn cáp 140×50 · gắn chổi chắn bụi'));
+  // ===== THIẾT BỊ =====
+  const EQUIP = [
+    [1, 'Patch panel 24 – CAMERA', 0x9ec5ff, 60],
+    [1, 'Thanh quản lý cáp', 0x9aa3ab, 80],
+    [1, 'Switch PoE 16 cổng – CAMERA', 0xffb36b, 280],
+    [1, 'Patch panel 24 – VĂN PHÒNG', 0x9ec5ff, 60],
+    [1, 'Thanh quản lý cáp', 0x9aa3ab, 80],
+    [1, 'Switch 24 cổng – VĂN PHÒNG', 0xffb36b, 280],
+    [2, 'Khay 2 điểm: Router 2 WAN + modem quang', 0x9fd49a, 300, 'tray'],
+    [2, 'Khay 2 điểm: Đầu ghi NVR 16 kênh', 0x9fd49a, 300, 'tray'],
+    [1, '(trống – thoát nhiệt / dự phòng)', null, 0],
+    [1, 'Thanh nguồn PDU 6 ổ có CB', 0xf2a1a8, 200],
+  ];
+  const list = document.getElementById('list');
+  const eqMeshes = [];
+  let y = railTop;
+  EQUIP.forEach(([n, name, col, dep, kind]) => {
+    const h = n * U; y -= h;
+    if (col === null) {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="sw" style="background:transparent"></span>' + name + ' · ' + n + 'U';
+      list.appendChild(li); return;
+    }
+    const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.55, metalness: 0.1 });
+    const meshes = [];
+    if (kind === 'tray') {
+      // khay 2 điểm
+      meshes.push(box(CX - 222, y, -RF, CX + 222, y + 3, -(RF + 300), steel, groups.eq, 'Khay cố định 2 điểm (công-xôn) · sâu 300'));
+      [[CX - 241, CX - 222], [CX + 222, CX + 241]].forEach(([a, b]) => meshes.push(box(a, y, -(RF - 2), b, y + 2 * U - 2, -RF, steel, groups.eq, 'Tai khay bắt vào ray')));
+      // thiết bị đặt trên khay
+      if (name.includes('NVR')) meshes.push(box(CX - 190, y + 3, -(RF + 20), CX + 190, y + 3 + 52, -(RF + 20 + 315), mat, groups.eq, name + ' · ' + n + 'U'));
+      else {
+        meshes.push(box(CX - 200, y + 3, -(RF + 30), CX - 10, y + 3 + 40, -(RF + 30 + 150), mat, groups.eq, 'Router 2 WAN (failover)'));
+        meshes.push(box(CX + 20, y + 3, -(RF + 30), CX + 170, y + 3 + 35, -(RF + 30 + 120), mat, groups.eq, 'Modem quang (ONT)'));
+      }
+    } else {
+      meshes.push(box(CX - 220, y + 1, -(RF - 2), CX + 220, y + h - 1, -(RF + dep), mat, groups.eq, name + ' · ' + n + 'U'));
+      // tai rack
+      const ear = box(CX - 241, y + 1, -(RF - 2), CX + 241, y + h - 1, -(RF), mat, groups.eq, name + ' · ' + n + 'U');
+      meshes.push(ear);
+      if (name.includes('Patch') || name.includes('Switch')) {
+        // cổng mạng
+        const portMat = new THREE.MeshStandardMaterial({ color: 0x1a1d20 });
+        const cnt = name.includes('16') ? 16 : 24;
+        for (let i = 0; i < cnt; i++) {
+          const px = CX - 180 + i * (360 / (cnt - 1));
+          box(px - 6, y + h / 2 - 5, -(RF - 3), px + 6, y + h / 2 + 5, -(RF - 2.5), portMat, groups.eq);
+        }
+      }
+    }
+    eqMeshes.push({ name, meshes });
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="sw" style="background:#' + col.toString(16).padStart(6, '0') + '"></span>' + name + ' · ' + n + 'U';
+    li.addEventListener('click', () => flash(meshes));
+    list.appendChild(li);
+  });
+  // dây nhảy minh họa
+  const cordMat = new THREE.MeshStandardMaterial({ color: 0x2f80ed });
+  function cord(x, y0, y1) {
+    const pts = [new THREE.Vector3(x * S, y0 * S, -(RF - 4) * S), new THREE.Vector3(x * S, ((y0 + y1) / 2) * S, -(RF - 40) * S), new THREE.Vector3(x * S, y1 * S, -(RF - 4) * S)];
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 2.5 * S, 6), cordMat);
+    groups.eq.add(tube);
+  }
+  for (let i = 0; i < 13; i++) {
+    const x = CX - 180 + i * (360 / 15);
+    cord(x, railTop - U / 2, railTop - 2.5 * U);
+  }
+
+  // ===== CÁNH: ván 15 mm phủ ngoài, bản lề bắt vào ván hông trái =====
+  const DW = FW + 2 * V, DH = FH + 2 * V;
+  const doorPivot = new THREE.Group();
+  doorPivot.position.set(-V * S, -V * S, 0);
+  groups.door.add(doorPivot);
+  function dbox(x0, y0, z0, x1, y1, z1, mat, info) {
+    const m = box(x0, y0, z0, x1, y1, z1, mat, null, info);
+    scene.remove(m); doorPivot.add(m); return m;
+  }
+  const wx0 = 90, wx1 = 470, wy0 = 100, wy1 = 580;
+  const dInfo = 'Cánh tủ · ván 15 mm 560×680';
+  dbox(0, 0, V, DW, wy0, 0, doorWood, dInfo);
+  dbox(0, wy1, V, DW, DH, 0, doorWood, dInfo);
+  dbox(0, wy0, V, wx0, wy1, 0, doorWood, dInfo);
+  dbox(wx1, wy0, V, DW, wy1, 0, doorWood, dInfo);
+  const meshMat = new THREE.MeshStandardMaterial({ color: 0x9aa3ab, metalness: 0.6, roughness: 0.4, transparent: true, opacity: 0.35 });
+  dbox(wx0, wy0, V / 2 + 0.5, wx1, wy1, V / 2 - 0.5, meshMat, 'Lưới thép đột lỗ 380×480');
+  const lockMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.3 });
+  dbox(DW - 45, DH / 2 - 40, V + 14, DW - 25, DH / 2 + 40, V, lockMat, 'Khóa tủ điện');
+  [90, DH - 90].forEach(yy => box(-V - 6, yy - V - 25, 8, -V + 4, yy - V + 25, -30, lockMat, groups.frame, 'Bản lề (bắt vào ván hông)'));
+
+  // ===== TƯỜNG =====
+  const wallMat = new THREE.MeshStandardMaterial({ color: dark ? 0x3a4249 : 0xd9dde1, roughness: 0.95 });
+  box(-600, -1200, -SIDE_D, FW + 600, FH + 900, -SIDE_D - 200, wallMat, groups.wall);
+  const floorMat = new THREE.MeshStandardMaterial({ color: dark ? 0x2a3036 : 0xc9ced3, roughness: 1 });
+  box(-600, -1220, 400, FW + 600, -1200, -SIDE_D - 200, floorMat, groups.wall);
+  // bu lông nở xuyên thanh ngang sau
+  [T / 2, FH - T / 2].forEach(yy => [CX - 150, CX + 150].forEach(x =>
+    box(x - 5, yy - 5, -(RF + FD - T), x + 5, yy + 5, -SIDE_D - 60, lockMat, groups.frame, 'Bu lông nở M8×80 xuyên thanh ngang sau')));
+  // ===== nhãn kích thước =====
+  function label(text, x, y, z) {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = 'rgba(232,116,12,0.92)'; ctx.fillRect(0, 8, 256, 48);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 28px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, 128, 33);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
+    sp.scale.set(1.3, 0.33, 1); sp.position.set(x * S, y * S, z * S);
+    scene.add(sp); return sp;
+  }
+  label('560 mm', CX, FH + 110, 40);
+  label('680 mm', FW + 130, FH / 2, 40);
+  label('490 mm', FW + 120, FH + 60, -240);
+
+  // ===== tương tác =====
+  function flash(meshes) {
+    meshes.forEach(m => {
+      const mat = m.material; const old = mat.emissive ? mat.emissive.getHex() : 0;
+      if (!mat.emissive) return;
+      mat.emissive.setHex(0xff6a00);
+      setTimeout(() => mat.emissive.setHex(old), 900);
+    });
+  }
+  const tip = document.getElementById('tip');
+  const ray = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+  renderer.domElement.addEventListener('pointermove', e => {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    ray.setFromCamera(mouse, camera);
+    const vis = pickables.filter(m => { let o = m; while (o) { if (!o.visible) return false; o = o.parent; } return true; });
+    const hit = ray.intersectObjects(vis, false)[0];
+    if (hit) { tip.style.display = 'block'; tip.textContent = hit.object.userData.info;
+      tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; }
+    else tip.style.display = 'none';
+  });
+  renderer.domElement.addEventListener('pointerleave', () => tip.style.display = 'none');
+
+  let doorOpen = false, doorAngle = 0;
+  const bDoor = document.getElementById('bDoor');
+  bDoor.onclick = () => { doorOpen = !doorOpen; bDoor.classList.toggle('on', doorOpen); bDoor.textContent = doorOpen ? 'Đóng cánh' : 'Mở cánh'; };
+  function toggler(id, group) {
+    const b = document.getElementById(id);
+    b.onclick = () => { group.visible = !group.visible; b.classList.toggle('on', group.visible); };
+  }
+  toggler('bWood', groups.wood); toggler('bEq', groups.eq); toggler('bWall', groups.wall);
+
+  const VIEWS = {
+    iso: [CX + 1200, FH + 600, 1400],
+    front: [CX, FH / 2, 1900],
+    side: [FW + 1800, FH / 2, -240],
+    top: [CX, FH + 1800, -230],
+  };
+  let anim = null;
+  function goView(k) {
+    const to = new THREE.Vector3(...VIEWS[k]).multiplyScalar(S);
+    anim = { from: camera.position.clone(), to, t: 0 };
+    controls.target.copy(target);
+    if (k === 'front' || k === 'iso') { doorOpen = true; bDoor.classList.add('on'); bDoor.textContent = 'Đóng cánh'; }
+  }
+  document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => goView(b.dataset.view));
+  camera.position.set(...VIEWS.iso.map(v => v * S));
+
+  const toggleUi = document.getElementById('toggleUi');
+  toggleUi.onclick = () => document.getElementById('ui').classList.toggle('hidden');
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  function loop() {
+    requestAnimationFrame(loop);
+    const goal = doorOpen ? -Math.PI * 0.62 : 0;
+    doorAngle += (goal - doorAngle) * 0.08;
+    doorPivot.rotation.y = -doorAngle * -1;
+    if (anim) {
+      anim.t = Math.min(1, anim.t + 0.04);
+      const k = anim.t < 0.5 ? 2 * anim.t * anim.t : 1 - Math.pow(-2 * anim.t + 2, 2) / 2;
+      camera.position.lerpVectors(anim.from, anim.to, k);
+      if (anim.t >= 1) anim = null;
+    }
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  // mở cánh sẵn để thấy thiết bị
+  doorOpen = true; bDoor.classList.add('on'); bDoor.textContent = 'Đóng cánh';
+  loop();
+})();
+</script>
+</body>
+</html>
