@@ -2,7 +2,7 @@ import type { MktPost, MktPostMedia, MktPostMetric, MktPostStatus, Prisma } from
 import { prisma } from "@/lib/prisma"
 import { getStorage } from "@/lib/storage"
 import { AccessError, ConflictError, UpstreamError } from "@/lib/http"
-import { getFacebookClient } from "./facebook"
+import { getFacebookClient, listConnectedPages } from "./connections"
 import type { PostInput, ReviewInput } from "./schemas"
 import type { MktPostDto } from "./types"
 import { STUCK_PUBLISHING_MS, assertCanPerform, assertScheduleWindow, statusAfterEdit } from "./workflow"
@@ -58,8 +58,8 @@ async function findRow(id: string): Promise<PostRow> {
 }
 
 async function pageName(fbPageId: string): Promise<string> {
-  const page = (await getFacebookClient().listPages()).find((p) => p.id === fbPageId)
-  if (!page) throw new ConflictError("Fanpage đã chọn không còn trong danh sách DakaTool được quản lý.")
+  const page = (await listConnectedPages()).find((p) => p.id === fbPageId)
+  if (!page) throw new ConflictError("Fanpage đã chọn chưa được kết nối với DakaTool. Trưởng nhóm cần kết nối lại Facebook và chọn Fanpage này.")
   return page.name
 }
 

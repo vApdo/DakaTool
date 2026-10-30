@@ -3,31 +3,44 @@
 Mục **Marketing** trong DakaTool cho team MKT soạn bài, trưởng nhóm duyệt, rồi đăng ngay
 hoặc hẹn giờ lên Fanpage. Phần này cần 3 thứ do người quản trị cài một lần.
 
-## 1. Token Facebook (`FB_SYSTEM_USER_TOKEN`)
+## 1. Ứng dụng Facebook (`FB_APP_ID`, `FB_APP_SECRET`)
 
-DakaTool đăng bài thay mặt một **System User** trong Business Manager (Meta Business Suite),
-không dùng tài khoản Facebook cá nhân của ai cả. Token loại này không hết hạn theo thời gian.
+DakaTool đăng bài bằng quyền của **một tài khoản Facebook đang quản lý các Fanpage**:
+trưởng nhóm bấm **Kết nối Facebook** một lần, đăng nhập và chọn Fanpage. Không cần Business Manager
+hay System User, nhưng Facebook bắt buộc mọi web đăng bài qua API phải có một ứng dụng (Meta App).
 
-1. Vào [developers.facebook.com](https://developers.facebook.com/apps) → **Tạo ứng dụng** → loại **Business**,
-   gắn vào đúng Business portfolio đang sở hữu các Fanpage.
-2. Vào **Business settings** → **Users → System users** → **Add**, đặt tên ví dụ `DakaTool`, vai trò **Admin**.
-3. Với System User vừa tạo, bấm **Assign assets**:
-   - **Pages**: chọn các Fanpage cần đăng, bật quyền tạo nội dung và xem số liệu (Content + Insights).
-   - **Apps**: chọn ứng dụng ở bước 1, quyền **Manage app**.
-4. Bấm **Generate new token** → chọn ứng dụng ở bước 1 → thời hạn **Never** → chọn các quyền:
-   `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`, `read_insights`.
-5. Sao chép token, **không gửi qua chat hay email**. Dán thẳng vào Vercel ở bước 3 bên dưới.
+1. Vào [developers.facebook.com/apps](https://developers.facebook.com/apps) → **Tạo ứng dụng**.
+   Chọn trường hợp dùng liên quan tới **quản lý Trang** (Manage everything on your Page), hoặc loại **Business**.
+2. Trong ứng dụng, thêm sản phẩm **Facebook Login** (Facebook Login for Business nếu chỉ có lựa chọn đó).
+   Ở **Settings** của Facebook Login, mục **Valid OAuth Redirect URIs**, thêm:
+   `https://dakatool.vercel.app/api/marketing/facebook/callback`
+   (thay bằng tên miền DakaTool thật nếu khác; chạy thử trên máy thì thêm `http://localhost:3000/api/marketing/facebook/callback`).
+3. **App settings → Basic**: sao chép **App ID** và **App Secret**. App Secret giữ kín như mật khẩu,
+   **không gửi qua chat hay email**, dán thẳng vào Vercel ở mục 3.
+4. Để ứng dụng ở chế độ **Development** là đủ dùng nội bộ, không cần Facebook xét duyệt.
+   Khi đó chỉ người có vai trò trong ứng dụng mới đăng nhập được: vào **App roles → Roles**,
+   thêm tài khoản Facebook sẽ bấm kết nối làm **Administrator** hoặc **Tester** (người được mời phải bấm chấp nhận).
 
-Fanpage nào được gán cho System User thì hiện trong ô chọn Fanpage của DakaTool.
-Thêm Fanpage mới chỉ cần gán thêm ở bước 3, không phải tạo token mới.
+### Kết nối Fanpage
 
-Nếu khi đăng Facebook báo thiếu quyền dù đã chọn đủ ở bước 4, kiểm tra trong ứng dụng
-(mục **App Review → Permissions and features**) xem các quyền trên đã ở mức dùng được chưa.
+1. Mở **Marketing** trong DakaTool, nhập **mã duyệt**, bấm **Kết nối Facebook**.
+2. Đăng nhập tài khoản đang quản trị Fanpage (cần quyền tạo nội dung trên Fanpage), tích chọn các Fanpage,
+   bấm đồng ý tất cả quyền Facebook hỏi.
+3. Facebook chuyển về DakaTool, khung kết nối hiện tên các Fanpage đã kết nối.
+
+Thêm Fanpage mới: bấm **Kết nối lại** và tích thêm Fanpage đó (danh sách được thay bằng lựa chọn mới).
+
+Kết nối **mất hiệu lực** khi tài khoản đã kết nối đổi mật khẩu, bị gỡ quyền quản lý Fanpage hoặc gỡ ứng dụng
+khỏi Facebook. Khi đó lúc duyệt bài DakaTool sẽ báo cần kết nối lại, chỉ việc bấm **Kết nối lại**.
+Bài đã hẹn giờ vẫn tự đăng vì lịch nằm trên Facebook.
+
+Token Fanpage được lưu trong database ở dạng mã hoá (khoá suy ra từ App Secret), không bao giờ gửi xuống trình duyệt.
 
 ## 2. Mã duyệt (`MKT_APPROVER_CODE`)
 
 Ai có mã truy cập DakaTool đều soạn bài và gửi duyệt được. Chỉ người có **mã duyệt** mới:
 duyệt & đăng/lên lịch, từ chối, huỷ lịch, xoá bài đã lên Facebook.
+Mã duyệt cũng cần để kết nối, kết nối lại hoặc ngắt kết nối Facebook.
 Đặt một mã dài (từ 12 ký tự), chỉ đưa cho trưởng nhóm. Đổi mã thì mọi phiên duyệt cũ tự hết hiệu lực.
 
 ## 3. Biến môi trường trên Vercel
@@ -36,7 +49,8 @@ Vercel → project `dakatool` → **Settings → Environment Variables**, bật 
 
 | Biến | Giá trị |
 |---|---|
-| `FB_SYSTEM_USER_TOKEN` | token ở mục 1 |
+| `FB_APP_ID` | App ID ở mục 1 |
+| `FB_APP_SECRET` | App Secret ở mục 1 |
 | `MKT_APPROVER_CODE` | mã duyệt ở mục 2 |
 | `FB_GRAPH_VERSION` | (không bắt buộc) mặc định `v26.0` |
 | `STORAGE_DRIVER` + `S3_*` | bắt buộc để tải ảnh: `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (Cloudflare R2 hoặc AWS S3) |
@@ -44,7 +58,8 @@ Vercel → project `dakatool` → **Settings → Environment Variables**, bật 
 Bucket S3/R2 cần cho phép CORS `PUT` từ tên miền DakaTool, vì trình duyệt tải ảnh thẳng lên bucket.
 Ví dụ cấu hình CORS: origin `https://dakatool.vercel.app`, method `PUT`, header `Content-Type`.
 
-Sau khi đặt biến, **Redeploy** bản Production. Bảng dữ liệu mới được tạo tự động khi build
+Sau khi đặt biến, **Redeploy** bản Production rồi bấm **Kết nối Facebook** (mục 1).
+Đổi `FB_APP_SECRET` thì phải kết nối lại. Bảng dữ liệu mới được tạo tự động khi build
 (`prisma migrate deploy` trong `scripts/vercel-build.mjs`).
 
 ## Cách hoạt động
@@ -57,5 +72,5 @@ Sau khi đặt biến, **Redeploy** bản Production. Bảng dữ liệu mới �
 
 ## Thử lần đầu
 
-Nên tạo một **Fanpage thử nghiệm**, gán cho System User, rồi thử: đăng ngay một bài chữ,
+Nên tạo một **Fanpage thử nghiệm**, chọn nó khi kết nối, rồi thử: đăng ngay một bài chữ,
 hẹn giờ một bài 3 ảnh sau 15 phút, huỷ lịch, xoá bài. Kiểm tra kết quả trực tiếp trên Fanpage.

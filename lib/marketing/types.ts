@@ -46,3 +46,11 @@ export interface MktPageDto {
   id: string
   name: string
 }
+
+export interface MktConnectionDto {
+  /** Đã đặt FB_APP_ID và FB_APP_SECRET. */
+  configured: boolean
+  pages: MktPageDto[]
+  connectedBy: string | null
+  connectedAt: string | null
+}

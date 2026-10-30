@@ -191,10 +191,12 @@ export function PostEditor({ postId }: { postId?: string }) {
   return (
     <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-6">
-        {!fbConfigured && (
+        {(!fbConfigured || pages.length === 0) && (
           <p className="flex gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            Chưa kết nối Facebook. Người quản trị cần đặt biến FB_SYSTEM_USER_TOKEN trên Vercel (xem docs/marketing-setup.md).
+            {fbConfigured
+              ? "Chưa có Fanpage nào được kết nối. Trưởng nhóm cần bấm “Kết nối Facebook” ở trang Marketing."
+              : "Chưa cấu hình ứng dụng Facebook. Người quản trị cần đặt FB_APP_ID và FB_APP_SECRET trên Vercel (xem docs/marketing-setup.md)."}
           </p>
         )}
 

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { PenSquare } from "lucide-react"
 import { AccessGate } from "@/components/access-gate"
 import { PageHeader } from "@/components/page-header"
+import { FacebookConnection } from "@/components/marketing/facebook-connection"
 import { PostList } from "@/components/marketing/post-list"
 
 export const metadata = { title: "Marketing - DakaTool" }
@@ -20,6 +21,7 @@ export default function MarketingPage() {
         }
       />
       <AccessGate>
+        <FacebookConnection />
         <PostList />
       </AccessGate>
     </div>

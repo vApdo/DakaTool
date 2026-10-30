@@ -36,7 +36,7 @@ Các tool PDF và trích xuất HBL trước đây đã được gỡ khỏi rep
 - **Next.js 14 App Router + React 18 + TypeScript + Tailwind CSS**, deploy trên Vercel.
 - Logic tính tiền/đọc số ở `lib/payment-request.ts`; dựng PDF phiếu ở `lib/pdf/payment-request.ts`;
   lịch sử đề nghị ở `lib/payment-history/` và `app/api/payment-requests`.
-- Marketing ở `lib/marketing/` (client Graph API `facebook.ts`, quy tắc trạng thái `workflow.ts`, mã duyệt `approver.ts`), API `app/api/marketing/*`, giao diện `app/(app)/marketing/*`.
+- Marketing ở `lib/marketing/` (client Graph API `facebook.ts`, Fanpage đã kết nối `connections.ts`, quy tắc trạng thái `workflow.ts`, mã duyệt `approver.ts`), API `app/api/marketing/*`, giao diện `app/(app)/marketing/*`.
 - Mỗi tool có runner riêng qua registry `components/tool-runner-registry.tsx`.
 - Khu vực app dùng route group `app/(app)/` với sidebar chung; homepage nằm ngoài.
 - Không commit chứng từ thật vào repo (`test/fixtures/*.pdf` bị `.gitignore`).

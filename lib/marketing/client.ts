@@ -1,4 +1,4 @@
-import type { MktPageDto, MktPostDto } from "./types"
+import type { MktConnectionDto, MktPostDto } from "./types"
 
 type ErrorPayload = { error?: { message?: string } }
 
@@ -23,7 +23,12 @@ export interface PostPayload {
 }
 
 export const marketingApi = {
-  pages: () => apiRequest<{ configured: boolean; pages: MktPageDto[] }>("/api/marketing/pages"),
+  pages: () => apiRequest<MktConnectionDto>("/api/marketing/pages"),
+
+  /** Trang bắt đầu đăng nhập Facebook — mở bằng điều hướng, không gọi fetch. */
+  connectUrl: "/api/marketing/facebook/connect",
+
+  disconnectFacebook: () => apiRequest<{ disconnected: true }>("/api/marketing/facebook", { method: "DELETE" }),
 
   listPosts: async (range?: { from: Date; to: Date }) => {
     const query = range ? `?from=${encodeURIComponent(range.from.toISOString())}&to=${encodeURIComponent(range.to.toISOString())}` : ""

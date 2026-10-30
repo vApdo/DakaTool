@@ -1,8 +1,8 @@
 /**
  * Client Graph API tối giản cho việc đăng bài lên Fanpage.
  *
- * Xác thực bằng token System User trong Business Manager (FB_SYSTEM_USER_TOKEN):
- * từ token này gọi /me/accounts để lấy danh sách Fanpage và Page token từng trang.
+ * Xác thực bằng Facebook Login: người quản trị bấm "Kết nối Facebook" một lần,
+ * DakaTool lưu Page token từng Fanpage (đã mã hoá) trong bảng MktPageConnection.
  * Token không bao giờ rời server — client chỉ thấy id và tên Fanpage.
  *
  * Hẹn giờ dùng tính năng gốc của Facebook (published=false + scheduled_publish_time)
@@ -10,17 +10,28 @@
  */
 import { UpstreamError } from "@/lib/http"
 
-const DEFAULT_GRAPH_VERSION = "v26.0"
-const PAGE_CACHE_MS = 5 * 60 * 1000
+export const DEFAULT_GRAPH_VERSION = "v26.0"
+
+/** Quyền xin khi đăng nhập Facebook. business_management cần cho Fanpage thuộc Business portfolio. */
+export const LOGIN_SCOPES = [
+  "pages_show_list",
+  "pages_manage_posts",
+  "pages_read_engagement",
+  "read_insights",
+  "business_management",
+] as const
 
 export interface FacebookPage {
   id: string
   name: string
 }
 
-interface PageWithToken extends FacebookPage {
+export interface PageWithToken extends FacebookPage {
   accessToken: string
 }
+
+/** Trả về Page token của Fanpage, hoặc null nếu Fanpage chưa được kết nối. */
+export type PageTokenSource = (pageId: string) => Promise<string | null>
 
 export interface PhotoUpload {
   data: Blob
@@ -65,8 +76,15 @@ export class FacebookError extends UpstreamError {
   }
 }
 
+export function facebookAppConfig(): { appId: string; appSecret: string; version: string } | null {
+  const appId = process.env.FB_APP_ID?.trim()
+  const appSecret = process.env.FB_APP_SECRET?.trim()
+  if (!appId || !appSecret) return null
+  return { appId, appSecret, version: process.env.FB_GRAPH_VERSION?.trim() || DEFAULT_GRAPH_VERSION }
+}
+
 export function isFacebookConfigured(): boolean {
-  return Boolean(process.env.FB_SYSTEM_USER_TOKEN?.trim())
+  return facebookAppConfig() !== null
 }
 
 /** Đổi lỗi Graph API sang câu tiếng Việt người dùng hiểu được và biết phải làm gì. */
@@ -74,10 +92,10 @@ export function describeGraphError(body: GraphErrorBody, status: number): string
   const error = body.error
   const code = error?.code
   if (code === 190) {
-    return "Token Facebook đã hết hạn hoặc bị thu hồi. Người quản trị cần tạo token mới cho FB_SYSTEM_USER_TOKEN."
+    return "Kết nối Facebook đã hết hiệu lực (tài khoản đã kết nối đổi mật khẩu, mất quyền quản trị Fanpage hoặc gỡ ứng dụng). Trưởng nhóm cần bấm “Kết nối lại Facebook” ở trang Marketing."
   }
   if (code === 10 || code === 200 || (code !== undefined && code >= 200 && code < 300)) {
-    return "Tài khoản Facebook của DakaTool chưa có quyền đăng lên Fanpage này. Kiểm tra quyền của System User và các quyền pages_manage_posts, pages_read_engagement."
+    return "Tài khoản Facebook đã kết nối chưa có quyền đăng lên Fanpage này. Bấm “Kết nối lại Facebook” và cho phép đủ các quyền Facebook hỏi."
   }
   if (code === 4 || code === 17 || code === 32 || code === 613) {
     return "Facebook đang giới hạn số lần gọi. Đợi vài phút rồi thử lại."
@@ -93,10 +111,8 @@ export function describeGraphError(body: GraphErrorBody, status: number): string
 }
 
 export class FacebookClient {
-  private pagesCache: { at: number; pages: PageWithToken[] } | null = null
-
   constructor(
-    private readonly systemToken: string,
+    private readonly pageTokens: PageTokenSource,
     private readonly version: string = DEFAULT_GRAPH_VERSION,
     private readonly fetchImpl: FetchLike = fetch,
   ) {}
@@ -105,13 +121,13 @@ export class FacebookClient {
     return `https://graph.facebook.com/${this.version}/${path.replace(/^\//, "")}`
   }
 
-  private async call<T>(path: string, init: RequestInit & { token: string }): Promise<T> {
+  private async call<T>(path: string, init: RequestInit & { token?: string }): Promise<T> {
     const { token, ...rest } = init
     let response: Response
     try {
       response = await this.fetchImpl(this.url(path), {
         ...rest,
-        headers: { Authorization: `Bearer ${token}`, ...rest.headers },
+        headers: token ? { Authorization: `Bearer ${token}`, ...rest.headers } : rest.headers,
         cache: "no-store",
       })
     } catch {
@@ -124,27 +140,64 @@ export class FacebookClient {
     return body
   }
 
-  private async pagesWithTokens(): Promise<PageWithToken[]> {
-    if (this.pagesCache && Date.now() - this.pagesCache.at < PAGE_CACHE_MS) return this.pagesCache.pages
-    const result = await this.call<{ data: { id: string; name: string; access_token: string }[] }>(
-      "me/accounts?fields=id,name,access_token&limit=100",
-      { method: "GET", token: this.systemToken },
-    )
-    const pages = result.data.map((p) => ({ id: p.id, name: p.name, accessToken: p.access_token }))
-    this.pagesCache = { at: Date.now(), pages }
-    return pages
+  /** Link mở hộp thoại đăng nhập Facebook để người quản trị cấp quyền cho DakaTool. */
+  loginUrl(appId: string, redirectUri: string, state: string): string {
+    const params = new URLSearchParams({
+      client_id: appId,
+      redirect_uri: redirectUri,
+      state,
+      response_type: "code",
+      scope: LOGIN_SCOPES.join(","),
+    })
+    return `https://www.facebook.com/${this.version}/dialog/oauth?${params}`
   }
 
-  async listPages(): Promise<FacebookPage[]> {
-    return (await this.pagesWithTokens()).map(({ id, name }) => ({ id, name }))
+  /**
+   * Đổi mã đăng nhập lấy token người dùng dài hạn (~60 ngày). Page token lấy từ token
+   * dài hạn thì không có hạn dùng, chỉ mất hiệu lực khi người đó đổi mật khẩu, mất quyền
+   * quản trị Fanpage hoặc gỡ ứng dụng.
+   */
+  async exchangeCode(input: { appId: string; appSecret: string; redirectUri: string; code: string }): Promise<string> {
+    const short = await this.call<{ access_token: string }>(
+      `oauth/access_token?${new URLSearchParams({
+        client_id: input.appId,
+        client_secret: input.appSecret,
+        redirect_uri: input.redirectUri,
+        code: input.code,
+      })}`,
+      { method: "GET" },
+    )
+    const long = await this.call<{ access_token: string }>(
+      `oauth/access_token?${new URLSearchParams({
+        grant_type: "fb_exchange_token",
+        client_id: input.appId,
+        client_secret: input.appSecret,
+        fb_exchange_token: short.access_token,
+      })}`,
+      { method: "GET" },
+    )
+    return long.access_token
+  }
+
+  /** Tên người đã đăng nhập và các Fanpage họ được phép đăng bài, kèm Page token. */
+  async managedPages(userToken: string): Promise<{ userName: string; pages: PageWithToken[] }> {
+    const me = await this.call<{ name?: string }>("me?fields=name", { method: "GET", token: userToken })
+    const result = await this.call<{ data: { id: string; name: string; access_token?: string; tasks?: string[] }[] }>(
+      "me/accounts?fields=id,name,access_token,tasks&limit=100",
+      { method: "GET", token: userToken },
+    )
+    const pages = result.data
+      .filter((p) => p.access_token && (!p.tasks || p.tasks.includes("CREATE_CONTENT")))
+      .map((p) => ({ id: p.id, name: p.name, accessToken: p.access_token! }))
+    return { userName: me.name ?? "Facebook", pages }
   }
 
   private async pageToken(pageId: string): Promise<string> {
-    const page = (await this.pagesWithTokens()).find((p) => p.id === pageId)
-    if (!page) {
-      throw new UpstreamError("DakaTool không còn quyền quản lý Fanpage này. Kiểm tra lại Fanpage được gán cho System User.")
+    const token = await this.pageTokens(pageId)
+    if (!token) {
+      throw new UpstreamError("Fanpage này chưa được kết nối với DakaTool. Trưởng nhóm cần bấm “Kết nối Facebook” ở trang Marketing và chọn Fanpage này.")
     }
-    return page.accessToken
+    return token
   }
 
   /** Token Fanpage chứa bài viết — id bài có dạng "{pageId}_{postId}". */
@@ -210,13 +263,11 @@ export class FacebookClient {
   }
 }
 
-let cached: FacebookClient | undefined
-
-export function getFacebookClient(): FacebookClient {
-  const token = process.env.FB_SYSTEM_USER_TOKEN?.trim()
-  if (!token) {
-    throw new UpstreamError("Chưa kết nối Facebook. Người quản trị cần đặt biến FB_SYSTEM_USER_TOKEN trên Vercel (xem docs/marketing-setup.md).")
+/** Client dùng Page token đã lưu trong database. */
+export function createFacebookClient(pageTokens: PageTokenSource): FacebookClient {
+  const config = facebookAppConfig()
+  if (!config) {
+    throw new UpstreamError("Chưa cấu hình ứng dụng Facebook. Người quản trị cần đặt FB_APP_ID và FB_APP_SECRET trên Vercel (xem docs/marketing-setup.md).")
   }
-  if (!cached) cached = new FacebookClient(token, process.env.FB_GRAPH_VERSION?.trim() || DEFAULT_GRAPH_VERSION)
-  return cached
+  return new FacebookClient(pageTokens, config.version)
 }

@@ -231,3 +231,13 @@ model MktPostMetric {
 
   post MktPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
+
+/// Fanpage đã kết nối qua "Kết nối Facebook". Page token được mã hoá bằng khoá suy ra từ FB_APP_SECRET.
+model MktPageConnection {
+  pageId         String   @id
+  pageName       String
+  encryptedToken String
+  /// Tên tài khoản Facebook đã bấm kết nối — kết nối mất hiệu lực nếu người này mất quyền Fanpage.
+  connectedBy    String
+  connectedAt    DateTime @default(now())
+}

@@ -6,13 +6,13 @@ const mocks = vi.hoisted(() => ({
   prisma: {
     mktPost: { findUnique: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
   },
-  facebook: { publish: vi.fn(), getPostStatus: vi.fn(), deletePost: vi.fn(), listPages: vi.fn() },
+  facebook: { publish: vi.fn(), getPostStatus: vi.fn(), deletePost: vi.fn() },
   storage: { getObjectStream: vi.fn() },
 }))
 
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }))
 vi.mock("@/lib/storage", () => ({ getStorage: () => mocks.storage }))
-vi.mock("@/lib/marketing/facebook", () => ({ getFacebookClient: () => mocks.facebook }))
+vi.mock("@/lib/marketing/connections", () => ({ getFacebookClient: () => mocks.facebook, listConnectedPages: vi.fn() }))
 
 import { approvePost } from "@/lib/marketing/repository"
 
