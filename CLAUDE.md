@@ -9,7 +9,12 @@ DakaTool là bộ công cụ nội bộ dùng Next.js 14 App Router, TypeScript 
 2. **Quản lý công trình** (`lib/construction/*`, `app/(app)/construction/*`) dùng
    PostgreSQL và storage. Mã quản lý lưu trong `AppSetting`; mọi route ghi phải gọi
    `requireManager`. Xem `docs/construction-module.md`.
-3. Danh sách tool là dữ liệu tĩnh trong `lib/data.ts`. Mỗi tool phải có runner thật
+3. **Marketing** (`lib/marketing/*`, `app/(app)/marketing/*`, `app/api/marketing/*`) đăng bài
+   Fanpage qua Graph API, không có bước duyệt (mọi route gọi `requireAppAccess`). Kết nối bằng
+   Facebook Login (`FB_APP_ID`, `FB_APP_SECRET`); Page token lưu mã hoá trong `MktPageConnection`.
+   Giao diện bắt chước facebook.com, màu gom ở `components/marketing/fb-theme.ts`.
+   Xem `docs/marketing-setup.md`.
+4. Danh sách tool là dữ liệu tĩnh trong `lib/data.ts`. Mỗi tool phải có runner thật
    đăng ký tại `components/tool-runner-registry.tsx`.
 
 ## Lệnh thường dùng

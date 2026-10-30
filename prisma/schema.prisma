@@ -162,3 +162,77 @@ model ConstructionFile {
 
   @@index([projectId])
 }
+
+// ===== Marketing: soạn và đăng bài lên Fanpage =====
+
+enum MktPostStatus {
+  DRAFT
+  /// Đang gửi lên Facebook — chặn bấm đăng hai lần thành bài trùng.
+  PUBLISHING
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+/// Một bài viết cho Fanpage, từ lúc soạn nháp tới khi đã đăng.
+model MktPost {
+  id           String        @id @default(cuid())
+  fbPageId     String
+  pageName     String
+  status       MktPostStatus @default(DRAFT)
+  message      String
+  /// null = đăng ngay khi bấm Đăng.
+  scheduledAt  DateTime?
+  authorName   String
+  /// id bài trên Facebook dạng "{pageId}_{postId}", có khi đã lên lịch hoặc đã đăng.
+  fbPostId     String?
+  permalinkUrl String?
+  publishedAt  DateTime?
+  lastError    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  media  MktPostMedia[]
+  metric MktPostMetric?
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([createdAt])
+}
+
+model MktPostMedia {
+  id          String @id @default(cuid())
+  postId      String
+  storageKey  String
+  contentType String
+  sizeBytes   Int
+  sortOrder   Int    @default(0)
+
+  post MktPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+/// Bản chụp số liệu gần nhất lấy từ Facebook, để không gọi API mỗi lần mở trang.
+model MktPostMetric {
+  postId      String   @id
+  views       Int?
+  uniqueViews Int?
+  clicks      Int?
+  reactions   Int?
+  comments    Int?
+  shares      Int?
+  fetchedAt   DateTime
+
+  post MktPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+/// Fanpage đã kết nối qua "Kết nối Facebook". Page token được mã hoá bằng khoá suy ra từ FB_APP_SECRET.
+model MktPageConnection {
+  pageId         String   @id
+  pageName       String
+  encryptedToken String
+  /// Tên tài khoản Facebook đã bấm kết nối — kết nối mất hiệu lực nếu người này mất quyền Fanpage.
+  connectedBy    String
+  connectedAt    DateTime @default(now())
+}

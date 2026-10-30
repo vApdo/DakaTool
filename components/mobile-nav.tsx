@@ -4,12 +4,13 @@ import { useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Wrench, History } from "lucide-react"
+import { LayoutDashboard, Wrench, History, Megaphone } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tools", label: "Tool", icon: Wrench },
+  { href: "/marketing", label: "Marketing", icon: Megaphone },
   { href: "/history", label: "Lịch sử", icon: History },
 ]
 
@@ -42,7 +43,7 @@ export function MobileNav() {
       >
         {navItems.map((item) => {
           const active =
-            item.href === "/tools" ? pathname === "/tools" || pathname.startsWith("/tools/") : pathname === item.href
+            pathname === item.href || pathname.startsWith(`${item.href}/`)
           return (
             <Link
               key={item.href}
