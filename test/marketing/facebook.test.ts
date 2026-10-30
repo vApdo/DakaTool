@@ -119,7 +119,7 @@ describe("FacebookClient", () => {
       .publish({ pageId: "111", message: "x", photos: [], scheduledAt: null })
       .catch((e: unknown) => e)
     expect(error).toBeInstanceOf(FacebookError)
-    expect((error as Error).message).toMatch(/Kết nối lại Facebook/)
+    expect((error as Error).message).toMatch(/Kết nối lại/)
     expect(describeGraphError({ error: { code: 100, message: "Invalid scheduled publish time" } }, 400)).toMatch(/10 phút đến 30 ngày/)
     expect(describeGraphError({ error: { code: 200 } }, 403)).toMatch(/chưa có quyền/)
   })

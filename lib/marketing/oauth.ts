@@ -5,7 +5,7 @@ export const STATE_COOKIE = "dakatool_mkt_fb_state"
 export const STATE_COOKIE_PATH = "/api/marketing/facebook"
 
 /** Kết quả hiện cho người dùng ở trang Marketing (`?fb=...`). */
-export type ConnectResult = "connected" | "cancelled" | "no_pages" | "need_approver" | "not_configured" | "failed"
+export type ConnectResult = "connected" | "cancelled" | "no_pages" | "not_configured" | "failed"
 
 export function callbackUrl(request: NextRequest): string {
   return `${request.nextUrl.origin}/api/marketing/facebook/callback`

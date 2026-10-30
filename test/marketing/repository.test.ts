@@ -14,7 +14,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }))
 vi.mock("@/lib/storage", () => ({ getStorage: () => mocks.storage }))
 vi.mock("@/lib/marketing/connections", () => ({ getFacebookClient: () => mocks.facebook, listConnectedPages: vi.fn() }))
 
-import { approvePost } from "@/lib/marketing/repository"
+import { publishPost } from "@/lib/marketing/repository"
 
 const NOW = new Date("2026-10-30T08:00:00Z")
 
@@ -23,13 +23,11 @@ function row(overrides: Record<string, unknown> = {}) {
     id: "post1",
     fbPageId: "111",
     pageName: "ASIA GROUP",
-    status: "PENDING_REVIEW",
+    status: "DRAFT",
     message: "Xin chào",
     link: null,
     scheduledAt: null,
     authorName: "Mai",
-    reviewerName: null,
-    reviewNote: null,
     fbPostId: null,
     permalinkUrl: null,
     publishedAt: null,
@@ -42,8 +40,6 @@ function row(overrides: Record<string, unknown> = {}) {
   }
 }
 
-const review = { reviewerName: "Thảo", note: "" }
-
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.prisma.mktPost.updateMany.mockResolvedValue({ count: 1 })
@@ -53,13 +49,13 @@ beforeEach(() => {
   mocks.storage.getObjectStream.mockImplementation(() => Promise.resolve(Readable.from([Buffer.from("anh")])))
 })
 
-describe("duyệt và đăng bài", () => {
+describe("đăng bài", () => {
   it("đăng ngay rồi lưu id bài, link bài và giờ đăng", async () => {
     mocks.prisma.mktPost.findUnique.mockResolvedValue(row())
     mocks.facebook.publish.mockResolvedValue("111_9")
     mocks.facebook.getPostStatus.mockResolvedValue({ permalinkUrl: "https://facebook.com/111/posts/9" })
 
-    const result = await approvePost("post1", review, NOW)
+    const result = await publishPost("post1", NOW)
 
     expect(result.status).toBe("PUBLISHED")
     expect(result.fbPostId).toBe("111_9")
@@ -80,7 +76,7 @@ describe("duyệt và đăng bài", () => {
     )
     mocks.facebook.publish.mockResolvedValue("111_10")
 
-    const result = await approvePost("post1", review, NOW)
+    const result = await publishPost("post1", NOW)
 
     expect(result.status).toBe("SCHEDULED")
     const input = mocks.facebook.publish.mock.calls[0][0] as { photos: { filename: string }[]; scheduledAt: Date }
@@ -89,18 +85,18 @@ describe("duyệt và đăng bài", () => {
     expect(mocks.facebook.getPostStatus).not.toHaveBeenCalled()
   })
 
-  it("không gọi Facebook khi người khác vừa duyệt bài này", async () => {
+  it("không gọi Facebook khi người khác vừa bấm đăng bài này", async () => {
     mocks.prisma.mktPost.findUnique.mockResolvedValue(row())
     mocks.prisma.mktPost.updateMany.mockResolvedValue({ count: 0 })
 
-    await expect(approvePost("post1", review, NOW)).rejects.toThrow(ConflictError)
+    await expect(publishPost("post1", NOW)).rejects.toThrow(ConflictError)
     expect(mocks.facebook.publish).not.toHaveBeenCalled()
   })
 
-  it("từ chối duyệt khi giờ hẹn đã quá, trước khi đụng tới Facebook", async () => {
+  it("không đăng khi giờ hẹn đã quá, trước khi đụng tới Facebook", async () => {
     mocks.prisma.mktPost.findUnique.mockResolvedValue(row({ scheduledAt: new Date(NOW.getTime() - 60_000) }))
 
-    await expect(approvePost("post1", review, NOW)).rejects.toThrow(/10 phút/)
+    await expect(publishPost("post1", NOW)).rejects.toThrow(/10 phút/)
     expect(mocks.prisma.mktPost.updateMany).not.toHaveBeenCalled()
   })
 
@@ -108,7 +104,7 @@ describe("duyệt và đăng bài", () => {
     mocks.prisma.mktPost.findUnique.mockResolvedValue(row())
     mocks.facebook.publish.mockRejectedValue(new UpstreamError("Token Facebook đã hết hạn"))
 
-    await expect(approvePost("post1", review, NOW)).rejects.toThrow(/hết hạn/)
+    await expect(publishPost("post1", NOW)).rejects.toThrow(/hết hạn/)
     expect(mocks.prisma.mktPost.update).toHaveBeenCalledWith({
       where: { id: "post1" },
       data: { status: "FAILED", lastError: "Token Facebook đã hết hạn" },

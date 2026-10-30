@@ -163,13 +163,11 @@ model ConstructionFile {
   @@index([projectId])
 }
 
-// ===== Marketing: soạn, duyệt và đăng bài lên Fanpage =====
+// ===== Marketing: soạn và đăng bài lên Fanpage =====
 
 enum MktPostStatus {
   DRAFT
-  PENDING_REVIEW
-  REJECTED
-  /// Đang gửi lên Facebook — chặn bấm duyệt hai lần đăng trùng bài.
+  /// Đang gửi lên Facebook — chặn bấm đăng hai lần thành bài trùng.
   PUBLISHING
   SCHEDULED
   PUBLISHED
@@ -184,11 +182,9 @@ model MktPost {
   status       MktPostStatus @default(DRAFT)
   message      String
   link         String?
-  /// null = đăng ngay khi duyệt.
+  /// null = đăng ngay khi bấm Đăng.
   scheduledAt  DateTime?
   authorName   String
-  reviewerName String?
-  reviewNote   String?
   /// id bài trên Facebook dạng "{pageId}_{postId}", có khi đã lên lịch hoặc đã đăng.
   fbPostId     String?
   permalinkUrl String?

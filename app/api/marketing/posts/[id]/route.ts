@@ -1,14 +1,7 @@
 import type { NextRequest } from "next/server"
 import { requireAppAccess } from "@/lib/access"
 import { handleError, ok } from "@/lib/http"
-import { requireApprover } from "@/lib/marketing/approver"
-import {
-  deleteNeedsApprover,
-  deletePost,
-  getPost,
-  getPostStatusForDelete,
-  updatePost,
-} from "@/lib/marketing/repository"
+import { deletePost, getPost, updatePost } from "@/lib/marketing/repository"
 import { postInputSchema } from "@/lib/marketing/schemas"
 
 export const runtime = "nodejs"
@@ -38,7 +31,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     await requireAppAccess(request)
-    if (deleteNeedsApprover(await getPostStatusForDelete(params.id))) requireApprover(request)
     await deletePost(params.id)
     return ok({ deleted: true as const })
   } catch (error) {

@@ -1,11 +1,11 @@
-import type { MktPost, MktPostMedia, MktPostMetric, MktPostStatus, Prisma } from "@prisma/client"
+import type { MktPost, MktPostMedia, MktPostMetric, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { getStorage } from "@/lib/storage"
 import { AccessError, ConflictError, UpstreamError } from "@/lib/http"
 import { getFacebookClient, listConnectedPages } from "./connections"
-import type { PostInput, ReviewInput } from "./schemas"
+import type { PostInput } from "./schemas"
 import type { MktPostDto } from "./types"
-import { STUCK_PUBLISHING_MS, assertCanPerform, assertScheduleWindow, statusAfterEdit } from "./workflow"
+import { STUCK_PUBLISHING_MS, assertCanPerform, assertScheduleWindow, isOnFacebook } from "./workflow"
 
 type PostRow = MktPost & { media: MktPostMedia[]; metric: MktPostMetric | null }
 
@@ -22,8 +22,6 @@ function toDto(row: PostRow): MktPostDto {
     link: row.link,
     scheduledAt: row.scheduledAt?.toISOString() ?? null,
     authorName: row.authorName,
-    reviewerName: row.reviewerName,
-    reviewNote: row.reviewNote,
     fbPostId: row.fbPostId,
     permalinkUrl: row.permalinkUrl,
     publishedAt: row.publishedAt?.toISOString() ?? null,
@@ -59,7 +57,7 @@ async function findRow(id: string): Promise<PostRow> {
 
 async function pageName(fbPageId: string): Promise<string> {
   const page = (await listConnectedPages()).find((p) => p.id === fbPageId)
-  if (!page) throw new ConflictError("Fanpage đã chọn chưa được kết nối với DakaTool. Trưởng nhóm cần kết nối lại Facebook và chọn Fanpage này.")
+  if (!page) throw new ConflictError("Fanpage đã chọn chưa được kết nối với DakaTool. Hãy kết nối lại Facebook và chọn Fanpage này.")
   return page.name
 }
 
@@ -148,7 +146,7 @@ export async function updatePost(id: string, input: PostInput): Promise<MktPostD
         link: input.link,
         scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
         authorName: input.authorName,
-        status: statusAfterEdit(current.status),
+        status: "DRAFT",
         lastError: null,
         media: { create: mediaCreate(input.media) },
       },
@@ -156,29 +154,6 @@ export async function updatePost(id: string, input: PostInput): Promise<MktPostD
     })
   })
   await removeStoredMedia(removedKeys)
-  return toDto(row)
-}
-
-export async function submitPost(id: string): Promise<MktPostDto> {
-  const current = await findRow(id)
-  assertCanPerform("submit", current.status)
-  const row = await prisma.mktPost.update({
-    where: { id },
-    data: { status: "PENDING_REVIEW", reviewNote: null, lastError: null },
-    include,
-  })
-  return toDto(row)
-}
-
-export async function rejectPost(id: string, review: ReviewInput): Promise<MktPostDto> {
-  const current = await findRow(id)
-  assertCanPerform("reject", current.status)
-  if (!review.note) throw new ConflictError("Ghi rõ lý do từ chối để người soạn biết cần sửa gì.")
-  const row = await prisma.mktPost.update({
-    where: { id },
-    data: { status: "REJECTED", reviewerName: review.reviewerName, reviewNote: review.note },
-    include,
-  })
   return toDto(row)
 }
 
@@ -191,13 +166,13 @@ async function readMedia(key: string, contentType: string): Promise<Blob> {
 }
 
 /**
- * Duyệt rồi đăng ngay hoặc hẹn giờ trên Facebook.
+ * Đăng ngay hoặc hẹn giờ trên Facebook.
  * Chuyển sang PUBLISHING bằng một lệnh cập nhật có điều kiện trước khi gọi Facebook,
- * nên hai người bấm duyệt cùng lúc cũng chỉ một lần đăng.
+ * nên hai người bấm Đăng cùng lúc cũng chỉ một lần đăng.
  */
-export async function approvePost(id: string, review: ReviewInput, now: Date = new Date()): Promise<MktPostDto> {
+export async function publishPost(id: string, now: Date = new Date()): Promise<MktPostDto> {
   const current = await findRow(id)
-  assertCanPerform("approve", current.status, current.updatedAt, now)
+  assertCanPerform("publish", current.status, current.updatedAt, now)
   assertScheduleWindow(current.scheduledAt, now)
   const facebook = getFacebookClient()
 
@@ -205,11 +180,11 @@ export async function approvePost(id: string, review: ReviewInput, now: Date = n
     where: {
       id,
       OR: [
-        { status: { in: ["PENDING_REVIEW", "FAILED"] } },
+        { status: { in: ["DRAFT", "FAILED"] } },
         { status: "PUBLISHING", updatedAt: { lt: new Date(now.getTime() - STUCK_PUBLISHING_MS) } },
       ],
     },
-    data: { status: "PUBLISHING", reviewerName: review.reviewerName, reviewNote: review.note || null, lastError: null },
+    data: { status: "PUBLISHING", lastError: null },
   })
   if (claimed.count === 0) throw new ConflictError("Bài này vừa được người khác xử lý. Tải lại trang để xem trạng thái mới.")
 
@@ -251,7 +226,7 @@ export async function approvePost(id: string, review: ReviewInput, now: Date = n
   }
 }
 
-/** Huỷ lịch: xoá bài hẹn giờ trên Facebook, đưa bài về nháp để sửa và duyệt lại. */
+/** Huỷ lịch: xoá bài hẹn giờ trên Facebook, đưa bài về nháp để sửa và đăng lại. */
 export async function cancelPost(id: string): Promise<MktPostDto> {
   const current = await findRow(id)
   assertCanPerform("cancel", current.status)
@@ -264,20 +239,11 @@ export async function cancelPost(id: string): Promise<MktPostDto> {
   return toDto(row)
 }
 
-/** Bài đã lên Facebook (đã đăng hoặc đã lên lịch) cần mã duyệt mới được xoá. */
-export function deleteNeedsApprover(status: MktPostStatus): boolean {
-  return status === "SCHEDULED" || status === "PUBLISHED"
-}
-
-export async function getPostStatusForDelete(id: string): Promise<MktPostStatus> {
-  return (await findRow(id)).status
-}
-
 /** Xoá bài; nếu bài đã lên Facebook thì xoá luôn trên Fanpage. */
 export async function deletePost(id: string): Promise<void> {
   const current = await findRow(id)
   assertCanPerform("delete", current.status)
-  if (deleteNeedsApprover(current.status) && current.fbPostId) await getFacebookClient().deletePost(current.fbPostId)
+  if (isOnFacebook(current.status) && current.fbPostId) await getFacebookClient().deletePost(current.fbPostId)
   await prisma.mktPost.delete({ where: { id } })
   await removeStoredMedia(current.media.map((m) => m.storageKey))
 }

@@ -30,8 +30,6 @@ export interface MktPostDto {
   link: string | null
   scheduledAt: string | null
   authorName: string
-  reviewerName: string | null
-  reviewNote: string | null
   fbPostId: string | null
   permalinkUrl: string | null
   publishedAt: string | null

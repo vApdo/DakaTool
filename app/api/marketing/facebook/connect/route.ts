@@ -1,7 +1,6 @@
 import { randomBytes } from "node:crypto"
 import { NextResponse, type NextRequest } from "next/server"
 import { hasAppAccess } from "@/lib/access"
-import { hasApproverAccess } from "@/lib/marketing/approver"
 import { createFacebookClient, facebookAppConfig } from "@/lib/marketing/facebook"
 import { STATE_COOKIE, STATE_COOKIE_PATH, backToMarketing, callbackUrl } from "@/lib/marketing/oauth"
 
@@ -11,7 +10,6 @@ export const dynamic = "force-dynamic"
 /** Mở hộp thoại đăng nhập Facebook. Đây là link điều hướng nên lỗi quay về trang Marketing thay vì trả JSON. */
 export async function GET(request: NextRequest) {
   if (!(await hasAppAccess(request))) return NextResponse.redirect(new URL("/marketing", request.url))
-  if (!hasApproverAccess(request)) return backToMarketing(request, "need_approver")
   const config = facebookAppConfig()
   if (!config) return backToMarketing(request, "not_configured")
 

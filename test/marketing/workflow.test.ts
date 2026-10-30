@@ -5,25 +5,25 @@ import {
   assertCanPerform,
   assertScheduleWindow,
   canPerform,
-  statusAfterEdit,
+  isOnFacebook,
 } from "@/lib/marketing/workflow"
 
 const NOW = new Date("2026-10-30T08:00:00Z")
 const minutes = (n: number) => new Date(NOW.getTime() + n * 60_000)
 
 describe("chuyển trạng thái bài viết", () => {
-  it("chỉ duyệt được bài chờ duyệt hoặc đăng lỗi", () => {
-    expect(canPerform("approve", "PENDING_REVIEW")).toBe(true)
-    expect(canPerform("approve", "FAILED")).toBe(true)
-    expect(canPerform("approve", "DRAFT")).toBe(false)
-    expect(canPerform("approve", "PUBLISHED")).toBe(false)
+  it("đăng được bài nháp hoặc bài đăng lỗi, không đăng lại bài đã lên Facebook", () => {
+    expect(canPerform("publish", "DRAFT")).toBe(true)
+    expect(canPerform("publish", "FAILED")).toBe(true)
+    expect(canPerform("publish", "SCHEDULED")).toBe(false)
+    expect(canPerform("publish", "PUBLISHED")).toBe(false)
   })
 
-  it("cho duyệt lại bài kẹt ở PUBLISHING quá lâu, nhưng không phải bài đang đăng", () => {
+  it("cho đăng lại bài kẹt ở PUBLISHING quá lâu, nhưng không phải bài đang đăng", () => {
     const fresh = new Date(NOW.getTime() - 1000)
     const stuck = new Date(NOW.getTime() - STUCK_PUBLISHING_MS - 1000)
-    expect(canPerform("approve", "PUBLISHING", fresh, NOW)).toBe(false)
-    expect(canPerform("approve", "PUBLISHING", stuck, NOW)).toBe(true)
+    expect(canPerform("publish", "PUBLISHING", fresh, NOW)).toBe(false)
+    expect(canPerform("publish", "PUBLISHING", stuck, NOW)).toBe(true)
   })
 
   it("không cho sửa bài đã lên Facebook", () => {
@@ -36,10 +36,11 @@ describe("chuyển trạng thái bài viết", () => {
     expect(canPerform("cancel", "PUBLISHED")).toBe(false)
   })
 
-  it("sửa bài bị từ chối hoặc lỗi thì về nháp, bài chờ duyệt giữ nguyên", () => {
-    expect(statusAfterEdit("REJECTED")).toBe("DRAFT")
-    expect(statusAfterEdit("FAILED")).toBe("DRAFT")
-    expect(statusAfterEdit("PENDING_REVIEW")).toBe("PENDING_REVIEW")
+  it("bài đã đăng hoặc đã hẹn giờ thì đang nằm trên Facebook", () => {
+    expect(isOnFacebook("SCHEDULED")).toBe(true)
+    expect(isOnFacebook("PUBLISHED")).toBe(true)
+    expect(isOnFacebook("DRAFT")).toBe(false)
+    expect(isOnFacebook("FAILED")).toBe(false)
   })
 })
 

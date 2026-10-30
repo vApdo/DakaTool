@@ -49,18 +49,8 @@ export const marketingApi = {
   deletePost: (id: string) =>
     apiRequest<{ deleted: true }>(`/api/marketing/posts/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
-  action: (id: string, action: "submit" | "approve" | "reject" | "cancel", review?: { reviewerName: string; note: string }) =>
-    apiRequest<MktPostDto>(`/api/marketing/posts/${encodeURIComponent(id)}/${action}`, {
-      method: "POST",
-      body: JSON.stringify(review ?? {}),
-    }),
-
-  approverStatus: () => apiRequest<{ configured: boolean; authorized: boolean }>("/api/marketing/approver"),
-
-  approverLogin: (code: string) =>
-    apiRequest<{ authorized: boolean }>("/api/marketing/approver", { method: "POST", body: JSON.stringify({ code }) }),
-
-  approverLogout: () => apiRequest<{ authorized: boolean }>("/api/marketing/approver", { method: "DELETE" }),
+  action: (id: string, action: "publish" | "cancel") =>
+    apiRequest<MktPostDto>(`/api/marketing/posts/${encodeURIComponent(id)}/${action}`, { method: "POST" }),
 
   /** Xin chỗ tải lên rồi PUT file (thẳng lên S3 hoặc qua máy chủ khi chạy cục bộ). */
   uploadPhoto: async (file: File) => {

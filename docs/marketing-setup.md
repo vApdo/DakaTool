@@ -1,12 +1,12 @@
 # Cài đặt Marketing (đăng bài Fanpage)
 
-Mục **Marketing** trong DakaTool cho team MKT soạn bài, trưởng nhóm duyệt, rồi đăng ngay
+Mục **Marketing** trong DakaTool cho team MKT soạn bài rồi đăng ngay
 hoặc hẹn giờ lên Fanpage. Phần này cần 3 thứ do người quản trị cài một lần.
 
 ## 1. Ứng dụng Facebook (`FB_APP_ID`, `FB_APP_SECRET`)
 
 DakaTool đăng bài bằng quyền của **một tài khoản Facebook đang quản lý các Fanpage**:
-trưởng nhóm bấm **Kết nối Facebook** một lần, đăng nhập và chọn Fanpage. Không cần Business Manager
+một người trong team bấm **Kết nối Facebook** một lần, đăng nhập và chọn Fanpage. Không cần Business Manager
 hay System User, nhưng Facebook bắt buộc mọi web đăng bài qua API phải có một ứng dụng (Meta App).
 
 1. Vào [developers.facebook.com/apps](https://developers.facebook.com/apps) → **Tạo ứng dụng**.
@@ -23,7 +23,7 @@ hay System User, nhưng Facebook bắt buộc mọi web đăng bài qua API ph�
 
 ### Kết nối Fanpage
 
-1. Mở **Marketing** trong DakaTool, nhập **mã duyệt**, bấm **Kết nối Facebook**.
+1. Mở **Marketing** trong DakaTool, bấm **Kết nối Facebook**.
 2. Đăng nhập tài khoản đang quản trị Fanpage (cần quyền tạo nội dung trên Fanpage), tích chọn các Fanpage,
    bấm đồng ý tất cả quyền Facebook hỏi.
 3. Facebook chuyển về DakaTool, khung kết nối hiện tên các Fanpage đã kết nối.
@@ -31,17 +31,15 @@ hay System User, nhưng Facebook bắt buộc mọi web đăng bài qua API ph�
 Thêm Fanpage mới: bấm **Kết nối lại** và tích thêm Fanpage đó (danh sách được thay bằng lựa chọn mới).
 
 Kết nối **mất hiệu lực** khi tài khoản đã kết nối đổi mật khẩu, bị gỡ quyền quản lý Fanpage hoặc gỡ ứng dụng
-khỏi Facebook. Khi đó lúc duyệt bài DakaTool sẽ báo cần kết nối lại, chỉ việc bấm **Kết nối lại**.
+khỏi Facebook. Khi đó lúc đăng bài DakaTool sẽ báo cần kết nối lại, chỉ việc bấm **Kết nối lại**.
 Bài đã hẹn giờ vẫn tự đăng vì lịch nằm trên Facebook.
 
 Token Fanpage được lưu trong database ở dạng mã hoá (khoá suy ra từ App Secret), không bao giờ gửi xuống trình duyệt.
 
-## 2. Mã duyệt (`MKT_APPROVER_CODE`)
+## 2. Ai được đăng bài
 
-Ai có mã truy cập DakaTool đều soạn bài và gửi duyệt được. Chỉ người có **mã duyệt** mới:
-duyệt & đăng/lên lịch, từ chối, huỷ lịch, xoá bài đã lên Facebook.
-Mã duyệt cũng cần để kết nối, kết nối lại hoặc ngắt kết nối Facebook.
-Đặt một mã dài (từ 12 ký tự), chỉ đưa cho trưởng nhóm. Đổi mã thì mọi phiên duyệt cũ tự hết hiệu lực.
+Không có bước duyệt: ai có mã truy cập DakaTool đều soạn, đăng, hẹn giờ, huỷ lịch, xoá bài và
+kết nối lại Facebook. Mỗi bài ghi tên người đăng. Chỉ đưa mã DakaTool cho người được phép đăng lên Fanpage.
 
 ## 3. Biến môi trường trên Vercel
 
@@ -51,7 +49,6 @@ Vercel → project `dakatool` → **Settings → Environment Variables**, bật 
 |---|---|
 | `FB_APP_ID` | App ID ở mục 1 |
 | `FB_APP_SECRET` | App Secret ở mục 1 |
-| `MKT_APPROVER_CODE` | mã duyệt ở mục 2 |
 | `FB_GRAPH_VERSION` | (không bắt buộc) mặc định `v26.0` |
 | `STORAGE_DRIVER` + `S3_*` | bắt buộc để tải ảnh: `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (Cloudflare R2 hoặc AWS S3) |
 
@@ -65,9 +62,9 @@ Sau khi đặt biến, **Redeploy** bản Production rồi bấm **Kết nối F
 ## Cách hoạt động
 
 - **Hẹn giờ** dùng tính năng hẹn giờ gốc của Facebook: bài nằm sẵn trong mục *Đã lên lịch* của Fanpage
-  và tự đăng đúng giờ, kể cả khi không ai mở DakaTool. Giờ hẹn phải cách lúc duyệt từ 10 phút đến 30 ngày.
+  và tự đăng đúng giờ, kể cả khi không ai mở DakaTool. Giờ hẹn phải cách lúc bấm Lên lịch từ 10 phút đến 30 ngày.
 - **Ảnh**: tối đa 10 ảnh JPG/PNG/GIF, 8 MB mỗi ảnh. Bài có ảnh thì Facebook không hiện khung xem trước link.
-- **Sửa bài đã lên lịch**: huỷ lịch (bài về nháp), sửa, rồi gửi duyệt lại.
+- **Sửa bài đã lên lịch**: huỷ lịch (bài về nháp), sửa, rồi bấm Lên lịch lại.
 - Video/Reels chưa hỗ trợ.
 
 ## Thử lần đầu

@@ -92,10 +92,10 @@ export function describeGraphError(body: GraphErrorBody, status: number): string
   const error = body.error
   const code = error?.code
   if (code === 190) {
-    return "Kết nối Facebook đã hết hiệu lực (tài khoản đã kết nối đổi mật khẩu, mất quyền quản trị Fanpage hoặc gỡ ứng dụng). Trưởng nhóm cần bấm “Kết nối lại Facebook” ở trang Marketing."
+    return "Kết nối Facebook đã hết hiệu lực (tài khoản đã kết nối đổi mật khẩu, mất quyền quản trị Fanpage hoặc gỡ ứng dụng). Bấm “Kết nối lại” ở trang Marketing."
   }
   if (code === 10 || code === 200 || (code !== undefined && code >= 200 && code < 300)) {
-    return "Tài khoản Facebook đã kết nối chưa có quyền đăng lên Fanpage này. Bấm “Kết nối lại Facebook” và cho phép đủ các quyền Facebook hỏi."
+    return "Tài khoản Facebook đã kết nối chưa có quyền đăng lên Fanpage này. Bấm “Kết nối lại” ở trang Marketing và cho phép đủ các quyền Facebook hỏi."
   }
   if (code === 4 || code === 17 || code === 32 || code === 613) {
     return "Facebook đang giới hạn số lần gọi. Đợi vài phút rồi thử lại."
@@ -195,7 +195,7 @@ export class FacebookClient {
   private async pageToken(pageId: string): Promise<string> {
     const token = await this.pageTokens(pageId)
     if (!token) {
-      throw new UpstreamError("Fanpage này chưa được kết nối với DakaTool. Trưởng nhóm cần bấm “Kết nối Facebook” ở trang Marketing và chọn Fanpage này.")
+      throw new UpstreamError("Fanpage này chưa được kết nối với DakaTool. Bấm “Kết nối lại” ở trang Marketing và chọn Fanpage này.")
     }
     return token
   }

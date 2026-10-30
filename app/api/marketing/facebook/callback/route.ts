@@ -1,7 +1,6 @@
 import { timingSafeEqual } from "node:crypto"
 import { NextResponse, type NextRequest } from "next/server"
 import { hasAppAccess } from "@/lib/access"
-import { hasApproverAccess } from "@/lib/marketing/approver"
 import { replaceConnections } from "@/lib/marketing/connections"
 import { createFacebookClient, facebookAppConfig } from "@/lib/marketing/facebook"
 import { STATE_COOKIE, backToMarketing, callbackUrl } from "@/lib/marketing/oauth"
@@ -20,7 +19,6 @@ function sameState(a: string | undefined, b: string | null): boolean {
 /** Facebook chuyển về đây sau khi người dùng đồng ý (hoặc huỷ) cấp quyền. */
 export async function GET(request: NextRequest) {
   if (!(await hasAppAccess(request))) return NextResponse.redirect(new URL("/marketing", request.url))
-  if (!hasApproverAccess(request)) return backToMarketing(request, "need_approver")
   const config = facebookAppConfig()
   if (!config) return backToMarketing(request, "not_configured")
 

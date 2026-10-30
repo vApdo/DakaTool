@@ -22,17 +22,12 @@ export const postInputSchema = z
     message: z.string().trim().max(10_000, "Nội dung tối đa 10.000 ký tự."),
     link: optionalLink,
     scheduledAt: z.iso.datetime({ offset: true, error: "Giờ hẹn không hợp lệ." }).nullable(),
-    authorName: z.string().trim().min(1, "Nhập tên người soạn.").max(100),
+    authorName: z.string().trim().min(1, "Nhập tên người đăng.").max(100),
     media: z.array(mediaInputSchema).max(MAX_PHOTOS, `Tối đa ${MAX_PHOTOS} ảnh mỗi bài.`),
   })
   .refine((post) => post.message.length > 0 || post.media.length > 0 || post.link !== null, {
     error: "Bài viết cần có nội dung, link hoặc ảnh.",
   })
-
-export const reviewSchema = z.object({
-  reviewerName: z.string().trim().min(1, "Nhập tên người duyệt.").max(100),
-  note: z.string().trim().max(1000).optional().default(""),
-})
 
 export const uploadRequestSchema = z.object({
   contentType: photoType,
@@ -45,4 +40,3 @@ export const listQuerySchema = z.object({
 })
 
 export type PostInput = z.infer<typeof postInputSchema>
-export type ReviewInput = z.infer<typeof reviewSchema>
