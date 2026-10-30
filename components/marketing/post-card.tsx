@@ -23,14 +23,6 @@ export type PostCommand = "edit" | "publish" | "cancel" | "delete"
 
 const LONG_MESSAGE = 320
 
-function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "").toUpperCase()
-  } catch {
-    return url
-  }
-}
-
 /** Một bài trong bảng tin, trình bày như bài trên Facebook, kèm thao tác theo trạng thái. */
 export function PostCard({
   post,
@@ -158,20 +150,11 @@ export function PostCard({
       )}
       {!post.message && <div className="h-3" />}
 
-      {post.media.length > 0 ? (
-        <PhotoGrid urls={post.media.map((m) => m.url)} />
+      {post.media[0]?.contentType.startsWith("video/") ? (
+        // eslint-disable-next-line jsx-a11y/media-has-caption -- video quảng cáo do team tự quay, không có phụ đề
+        <video src={post.media[0].url} controls preload="metadata" className="max-h-[600px] w-full bg-black" />
       ) : (
-        post.link && (
-          <a
-            href={post.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`block border-y px-4 py-3 ${fb.divider} bg-[#F0F2F5] hover:bg-[#E4E6EB] dark:bg-[#3A3B3C] dark:hover:bg-[#4E4F50]`}
-          >
-            <span className={`block text-[13px] ${fb.muted}`}>{hostOf(post.link)}</span>
-            <span className="block truncate text-[15px] font-semibold">{post.link}</span>
-          </a>
-        )
+        <PhotoGrid urls={post.media.map((m) => m.url)} />
       )}
 
       {post.status === "FAILED" && post.lastError && (

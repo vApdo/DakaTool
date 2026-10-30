@@ -27,7 +27,7 @@ npm run build       # build production
 |---|---|
 | Giấy đề nghị thanh toán | Nhập người đề nghị, bộ phận, công ty và danh sách hàng hóa theo Mẫu 05-TT; tự tính tổng và số tiền bằng chữ; tải PDF (pdf-lib, font tự host ở `public/fonts/`) hoặc in. Lịch sử đề nghị lưu trên Supabase. |
 
-**Marketing** (`/marketing`, ngoài danh sách tool): soạn và đăng bài Fanpage (ngay hoặc hẹn giờ) qua Graph API, giao diện kiểu facebook.com. Cài đặt: [docs/marketing-setup.md](docs/marketing-setup.md).
+**Marketing** (`/marketing`, ngoài danh sách tool): soạn và đăng bài ảnh/video lên Fanpage (ngay hoặc hẹn giờ) qua Graph API, giao diện kiểu facebook.com. Cài đặt: [docs/marketing-setup.md](docs/marketing-setup.md).
 
 Các tool PDF và trích xuất HBL trước đây đã được gỡ khỏi repo.
 

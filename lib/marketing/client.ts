@@ -16,7 +16,6 @@ async function apiRequest<T>(url: string, init?: RequestInit): Promise<T> {
 export interface PostPayload {
   fbPageId: string
   message: string
-  link: string
   scheduledAt: string | null
   authorName: string
   media: { key: string; contentType: string; sizeBytes: number }[]
@@ -52,14 +51,27 @@ export const marketingApi = {
   action: (id: string, action: "publish" | "cancel") =>
     apiRequest<MktPostDto>(`/api/marketing/posts/${encodeURIComponent(id)}/${action}`, { method: "POST" }),
 
-  /** Xin chỗ tải lên rồi PUT file (thẳng lên S3 hoặc qua máy chủ khi chạy cục bộ). */
-  uploadPhoto: async (file: File) => {
+  /**
+   * Xin chỗ tải lên rồi PUT file (thẳng lên S3 hoặc qua máy chủ khi chạy cục bộ).
+   * Dùng XMLHttpRequest để báo tiến độ — video có thể nặng tới 1 GB.
+   */
+  uploadMedia: async (file: File, onProgress?: (fraction: number) => void) => {
     const target = await apiRequest<{ key: string; url: string; method: "PUT"; headers: Record<string, string> }>(
       "/api/marketing/media",
       { method: "POST", body: JSON.stringify({ contentType: file.type, sizeBytes: file.size }) },
     )
-    const response = await fetch(target.url, { method: target.method, headers: target.headers, body: file })
-    if (!response.ok) throw new Error(`Không tải được ảnh "${file.name}". Vui lòng thử lại.`)
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open(target.method, target.url)
+      for (const [name, value] of Object.entries(target.headers)) xhr.setRequestHeader(name, value)
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress?.(event.loaded / event.total)
+      }
+      const fail = () => reject(new Error(`Không tải được "${file.name}". Vui lòng thử lại.`))
+      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : fail())
+      xhr.onerror = fail
+      xhr.send(file)
+    })
     return { key: target.key, contentType: file.type, sizeBytes: file.size }
   },
 }

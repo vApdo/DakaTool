@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
     mktPost: { findUnique: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
   },
   facebook: { publish: vi.fn(), getPostStatus: vi.fn(), deletePost: vi.fn() },
-  storage: { getObjectStream: vi.fn() },
+  storage: { getObjectStream: vi.fn(), createDownloadUrl: vi.fn() },
 }))
 
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }))
@@ -25,7 +25,6 @@ function row(overrides: Record<string, unknown> = {}) {
     pageName: "ASIA GROUP",
     status: "DRAFT",
     message: "Xin chào",
-    link: null,
     scheduledAt: null,
     authorName: "Mai",
     fbPostId: null,
@@ -83,6 +82,22 @@ describe("đăng bài", () => {
     expect(input.photos.map((p) => p.filename)).toEqual(["a.jpg", "b.png"])
     expect(input.scheduledAt).toBe(scheduledAt)
     expect(mocks.facebook.getPostStatus).not.toHaveBeenCalled()
+  })
+
+  it("bài video gửi link tải tạm cho Facebook thay vì đẩy file qua máy chủ", async () => {
+    mocks.prisma.mktPost.findUnique.mockResolvedValue(
+      row({ media: [{ storageKey: "marketing/media/v.mp4", contentType: "video/mp4" }] }),
+    )
+    mocks.storage.createDownloadUrl.mockResolvedValue("https://r2.example/v.mp4?sig=1")
+    mocks.facebook.publish.mockResolvedValue("777")
+    mocks.facebook.getPostStatus.mockResolvedValue({ permalinkUrl: null })
+
+    await publishPost("post1", NOW)
+
+    const input = mocks.facebook.publish.mock.calls[0][0] as { photos: unknown[]; video: unknown }
+    expect(input.video).toEqual({ url: "https://r2.example/v.mp4?sig=1" })
+    expect(input.photos).toEqual([])
+    expect(mocks.storage.getObjectStream).not.toHaveBeenCalled()
   })
 
   it("không gọi Facebook khi người khác vừa bấm đăng bài này", async () => {

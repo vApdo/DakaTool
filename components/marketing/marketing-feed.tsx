@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { AlertTriangle, CalendarClock, CheckCircle2, ImageIcon, Link2, Newspaper, RefreshCw, Unplug } from "lucide-react"
+import { AlertTriangle, CalendarClock, CheckCircle2, ImageIcon, Newspaper, Play, RefreshCw, Unplug } from "lucide-react"
 import { marketingApi } from "@/lib/marketing/client"
 import type { MktConnectionDto, MktPostDto, MktPostStatus } from "@/lib/marketing/types"
 import { ComposerDialog, type ComposerSection } from "./composer-dialog"
@@ -227,9 +227,8 @@ export function MarketingFeed() {
             <div className={`mt-3 flex border-t pt-2 ${fb.divider}`}>
               {(
                 [
-                  { section: "photos", label: "Ảnh", icon: ImageIcon, color: "text-[#45BD62]" },
+                  { section: "media", label: "Ảnh/video", icon: ImageIcon, color: "text-[#45BD62]" },
                   { section: "schedule", label: "Hẹn giờ", icon: CalendarClock, color: "text-[#F3425F]" },
-                  { section: "link", label: "Link", icon: Link2, color: "text-[#1877F2]" },
                 ] as const
               ).map(({ section, label, icon: Icon, color }) => (
                 <button
@@ -315,7 +314,11 @@ export function MarketingFeed() {
                 {upcoming.map((post) => (
                   <li key={post.id}>
                     <a href={`#post-${post.id}`} className={`flex gap-3 rounded-md px-2 py-2 ${fb.hover}`}>
-                      {post.media[0] ? (
+                      {post.media[0]?.contentType.startsWith("video/") ? (
+                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-black">
+                          <Play className="h-6 w-6 fill-white text-white" />
+                        </span>
+                      ) : post.media[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element -- ảnh nội bộ qua API có kiểm tra quyền
                         <img src={post.media[0].url} alt="" className="h-14 w-14 shrink-0 rounded-md object-cover" />
                       ) : (
@@ -324,7 +327,7 @@ export function MarketingFeed() {
                         </span>
                       )}
                       <span className="min-w-0">
-                        <span className="line-clamp-2 text-[15px] font-medium leading-tight">{post.message || post.link || "Bài ảnh"}</span>
+                        <span className="line-clamp-2 text-[15px] font-medium leading-tight">{post.message || (post.media[0]?.contentType.startsWith("video/") ? "Bài video" : "Bài ảnh")}</span>
                         <span className="mt-0.5 block text-[13px] font-semibold text-[#1877F2] dark:text-[#2D88FF]">
                           {facebookTime(post.scheduledAt!)}
                         </span>

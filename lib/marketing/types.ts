@@ -27,7 +27,6 @@ export interface MktPostDto {
   pageName: string
   status: MktPostStatus
   message: string
-  link: string | null
   scheduledAt: string | null
   authorName: string
   fbPostId: string | null

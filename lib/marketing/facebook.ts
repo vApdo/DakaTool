@@ -38,11 +38,15 @@ export interface PhotoUpload {
   filename: string
 }
 
+/** Video gửi lên Facebook: link tải tạm (Facebook tự tải về) hoặc nội dung file. */
+export type VideoUpload = { url: string } | { data: Blob; filename: string }
+
 export interface PublishInput {
   pageId: string
   message: string
-  link?: string | null
   photos: PhotoUpload[]
+  /** Có video thì không kèm ảnh. */
+  video?: VideoUpload | null
   /** null = đăng ngay. */
   scheduledAt: Date | null
 }
@@ -117,15 +121,15 @@ export class FacebookClient {
     private readonly fetchImpl: FetchLike = fetch,
   ) {}
 
-  private url(path: string): string {
-    return `https://graph.facebook.com/${this.version}/${path.replace(/^\//, "")}`
+  private url(path: string, host = "graph.facebook.com"): string {
+    return `https://${host}/${this.version}/${path.replace(/^\//, "")}`
   }
 
-  private async call<T>(path: string, init: RequestInit & { token?: string }): Promise<T> {
-    const { token, ...rest } = init
+  private async call<T>(path: string, init: RequestInit & { token?: string; host?: string }): Promise<T> {
+    const { token, host, ...rest } = init
     let response: Response
     try {
-      response = await this.fetchImpl(this.url(path), {
+      response = await this.fetchImpl(this.url(path, host), {
         ...rest,
         headers: token ? { Authorization: `Bearer ${token}`, ...rest.headers } : rest.headers,
         cache: "no-store",
@@ -200,17 +204,13 @@ export class FacebookClient {
     return token
   }
 
-  /** Token Fanpage chứa bài viết — id bài có dạng "{pageId}_{postId}". */
-  private async tokenForPost(postId: string): Promise<string> {
-    return this.pageToken(postId.split("_")[0] ?? postId)
-  }
-
   /**
    * Đăng ngay hoặc hẹn giờ. Có ảnh thì tải từng ảnh lên ở dạng chưa đăng rồi gắn vào
    * bài qua attached_media; ảnh cho bài hẹn giờ phải là `temporary` theo yêu cầu của Facebook.
    * Trả về id bài viết.
    */
   async publish(input: PublishInput): Promise<string> {
+    if (input.video) return this.publishVideo(input, input.video)
     const token = await this.pageToken(input.pageId)
     const scheduled = input.scheduledAt !== null
 
@@ -226,8 +226,6 @@ export class FacebookClient {
 
     const params = new URLSearchParams()
     if (input.message) params.set("message", input.message)
-    // Facebook bỏ qua link khi bài có ảnh đính kèm, nên chỉ gửi link cho bài không ảnh.
-    if (input.link && mediaIds.length === 0) params.set("link", input.link)
     mediaIds.forEach((id, i) => params.set(`attached_media[${i}]`, JSON.stringify({ media_fbid: id })))
     if (scheduled) {
       params.set("published", "false")
@@ -238,8 +236,33 @@ export class FacebookClient {
     return created.id
   }
 
-  async deletePost(postId: string): Promise<void> {
-    const token = await this.tokenForPost(postId)
+  /**
+   * Bài video đăng qua /{page}/videos trên graph-video.facebook.com. Có link tải tạm thì
+   * gửi file_url để Facebook tự tải (không phải đẩy file nặng qua máy chủ DakaTool).
+   * Trả về id video, cũng là id bài trên Fanpage.
+   */
+  private async publishVideo(input: PublishInput, video: VideoUpload): Promise<string> {
+    const token = await this.pageToken(input.pageId)
+    const form = new FormData()
+    if ("url" in video) form.set("file_url", video.url)
+    else form.set("source", video.data, video.filename)
+    if (input.message) form.set("description", input.message)
+    if (input.scheduledAt) {
+      form.set("published", "false")
+      form.set("scheduled_publish_time", String(Math.floor(input.scheduledAt.getTime() / 1000)))
+    }
+    const created = await this.call<{ id: string }>(`${input.pageId}/videos`, {
+      method: "POST",
+      body: form,
+      token,
+      host: "graph-video.facebook.com",
+    })
+    return created.id
+  }
+
+  /** Bài ảnh/chữ có id dạng "{pageId}_{postId}"; bài video dùng id video (không có "_"). */
+  async deletePost(postId: string, pageId: string): Promise<void> {
+    const token = await this.pageToken(pageId)
     try {
       await this.call<{ success: boolean }>(postId, { method: "DELETE", token })
     } catch (error) {
@@ -249,15 +272,18 @@ export class FacebookClient {
     }
   }
 
-  async getPostStatus(postId: string): Promise<PostStatus> {
-    const token = await this.tokenForPost(postId)
-    const post = await this.call<{ is_published?: boolean; permalink_url?: string; created_time?: string }>(
-      `${postId}?fields=is_published,permalink_url,created_time`,
+  async getPostStatus(postId: string, pageId: string): Promise<PostStatus> {
+    const token = await this.pageToken(pageId)
+    const isVideo = !postId.includes("_")
+    const post = await this.call<{ is_published?: boolean; published?: boolean; permalink_url?: string; created_time?: string }>(
+      `${postId}?fields=${isVideo ? "published" : "is_published"},permalink_url,created_time`,
       { method: "GET", token },
     )
+    // Video trả permalink dạng đường dẫn tương đối "/{page}/videos/{id}".
+    const permalink = post.permalink_url?.startsWith("/") ? `https://www.facebook.com${post.permalink_url}` : post.permalink_url
     return {
-      isPublished: post.is_published ?? false,
-      permalinkUrl: post.permalink_url ?? null,
+      isPublished: (isVideo ? post.published : post.is_published) ?? false,
+      permalinkUrl: permalink ?? null,
       createdTime: post.created_time ?? null,
     }
   }

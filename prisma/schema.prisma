@@ -181,7 +181,6 @@ model MktPost {
   pageName     String
   status       MktPostStatus @default(DRAFT)
   message      String
-  link         String?
   /// null = đăng ngay khi bấm Đăng.
   scheduledAt  DateTime?
   authorName   String

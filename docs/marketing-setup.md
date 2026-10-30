@@ -50,9 +50,9 @@ Vercel → project `dakatool` → **Settings → Environment Variables**, bật 
 | `FB_APP_ID` | App ID ở mục 1 |
 | `FB_APP_SECRET` | App Secret ở mục 1 |
 | `FB_GRAPH_VERSION` | (không bắt buộc) mặc định `v26.0` |
-| `STORAGE_DRIVER` + `S3_*` | bắt buộc để tải ảnh: `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (Cloudflare R2 hoặc AWS S3) |
+| `STORAGE_DRIVER` + `S3_*` | bắt buộc để tải ảnh/video: `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (Cloudflare R2 hoặc AWS S3) |
 
-Bucket S3/R2 cần cho phép CORS `PUT` từ tên miền DakaTool, vì trình duyệt tải ảnh thẳng lên bucket.
+Bucket S3/R2 cần cho phép CORS `PUT` từ tên miền DakaTool, vì trình duyệt tải ảnh/video thẳng lên bucket.
 Ví dụ cấu hình CORS: origin `https://dakatool.vercel.app`, method `PUT`, header `Content-Type`.
 
 Sau khi đặt biến, **Redeploy** bản Production rồi bấm **Kết nối Facebook** (mục 1).
@@ -63,11 +63,14 @@ Sau khi đặt biến, **Redeploy** bản Production rồi bấm **Kết nối F
 
 - **Hẹn giờ** dùng tính năng hẹn giờ gốc của Facebook: bài nằm sẵn trong mục *Đã lên lịch* của Fanpage
   và tự đăng đúng giờ, kể cả khi không ai mở DakaTool. Giờ hẹn phải cách lúc bấm Lên lịch từ 10 phút đến 30 ngày.
-- **Ảnh**: tối đa 10 ảnh JPG/PNG/GIF, 8 MB mỗi ảnh. Bài có ảnh thì Facebook không hiện khung xem trước link.
+- **Ảnh**: tối đa 10 ảnh JPG/PNG/GIF, 8 MB mỗi ảnh.
+- **Video**: 1 video MP4/MOV mỗi bài, tối đa 1 GB, không kèm ảnh (Facebook không cho trộn).
+  Lúc đăng, DakaTool đưa Facebook một link tải tạm (6 giờ) từ bucket để Facebook tự tải video,
+  nên file nặng không phải đi qua máy chủ Vercel. Video vừa đăng cần vài phút để Facebook xử lý xong mới xem được.
 - **Sửa bài đã lên lịch**: huỷ lịch (bài về nháp), sửa, rồi bấm Lên lịch lại.
-- Video/Reels chưa hỗ trợ.
+- Reels và đăng link (khung xem trước link) chưa hỗ trợ.
 
 ## Thử lần đầu
 
 Nên tạo một **Fanpage thử nghiệm**, chọn nó khi kết nối, rồi thử: đăng ngay một bài chữ,
-hẹn giờ một bài 3 ảnh sau 15 phút, huỷ lịch, xoá bài. Kiểm tra kết quả trực tiếp trên Fanpage.
+hẹn giờ một bài 3 ảnh và một bài video sau 15 phút, huỷ lịch, xoá bài. Kiểm tra kết quả trực tiếp trên Fanpage.

@@ -54,12 +54,11 @@ describe("FacebookClient", () => {
     expect(url.searchParams.get("scope")).toContain("pages_manage_posts")
   })
 
-  it("đăng ngay bài chữ + link bằng Page token", async () => {
+  it("đăng ngay bài chữ bằng Page token", async () => {
     const { calls, fetchMock } = graph({ "POST 111/feed": { id: "111_9" } })
     const id = await client(fetchMock).publish({
       pageId: "111",
       message: "Xin chào",
-      link: "https://asiagroup.vn",
       photos: [],
       scheduledAt: null,
     })
@@ -67,7 +66,7 @@ describe("FacebookClient", () => {
     const feed = calls.find((c) => c.url.includes("/111/feed"))!
     expect((feed.init.headers as Record<string, string>).Authorization).toBe("Bearer page-token")
     const body = feed.init.body as URLSearchParams
-    expect(body.get("link")).toBe("https://asiagroup.vn")
+    expect(body.get("message")).toBe("Xin chào")
     expect(body.has("published")).toBe(false)
   })
 
@@ -77,7 +76,6 @@ describe("FacebookClient", () => {
     await client(fetchMock).publish({
       pageId: "111",
       message: "Album",
-      link: "https://bo-qua.vn",
       photos: [
         { data: new Blob(["a"], { type: "image/jpeg" }), filename: "a.jpg" },
         { data: new Blob(["b"], { type: "image/jpeg" }), filename: "b.jpg" },
@@ -96,7 +94,33 @@ describe("FacebookClient", () => {
     expect(body.get("attached_media[1]")).toBe(JSON.stringify({ media_fbid: "p2" }))
     expect(body.get("published")).toBe("false")
     expect(body.get("scheduled_publish_time")).toBe(String(at.getTime() / 1000))
-    expect(body.has("link")).toBe(false)
+  })
+
+  it("hẹn giờ bài video: Facebook tự tải từ link tạm qua graph-video", async () => {
+    const { calls, fetchMock } = graph({ "POST 111/videos": { id: "777" } })
+    const at = new Date("2026-11-01T02:00:00Z")
+    const id = await client(fetchMock).publish({
+      pageId: "111",
+      message: "Clip khai trương",
+      photos: [],
+      video: { url: "https://r2.example/clip.mp4?sig=1" },
+      scheduledAt: at,
+    })
+    expect(id).toBe("777")
+    const call = calls.find((c) => c.url.includes("/videos"))!
+    expect(new URL(call.url).host).toBe("graph-video.facebook.com")
+    const form = call.init.body as FormData
+    expect(form.get("file_url")).toBe("https://r2.example/clip.mp4?sig=1")
+    expect(form.get("description")).toBe("Clip khai trương")
+    expect(form.get("published")).toBe("false")
+    expect(form.get("scheduled_publish_time")).toBe(String(at.getTime() / 1000))
+    expect(calls.some((c) => c.url.includes("/feed"))).toBe(false)
+  })
+
+  it("trạng thái bài video đọc trường published và đổi permalink thành link đầy đủ", async () => {
+    const { fetchMock } = graph({ "GET 777": { published: true, permalink_url: "/asiagroup/videos/777/" } })
+    const status = await client(fetchMock).getPostStatus("777", "111")
+    expect(status).toEqual({ isPublished: true, permalinkUrl: "https://www.facebook.com/asiagroup/videos/777/", createdTime: null })
   })
 
   it("báo lỗi khi Fanpage chưa được kết nối", async () => {
@@ -110,7 +134,7 @@ describe("FacebookClient", () => {
     const { fetchMock } = graph({
       "DELETE 111_9": { error: { code: 100, error_subcode: 33, message: "Object does not exist" } },
     })
-    await expect(client(fetchMock).deletePost("111_9")).resolves.toBeUndefined()
+    await expect(client(fetchMock).deletePost("111_9", "111")).resolves.toBeUndefined()
   })
 
   it("đổi lỗi Graph API sang tiếng Việt", async () => {

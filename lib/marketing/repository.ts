@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { getStorage } from "@/lib/storage"
 import { AccessError, ConflictError, UpstreamError } from "@/lib/http"
 import { getFacebookClient, listConnectedPages } from "./connections"
+import type { VideoUpload } from "./facebook"
+import { isVideoContentType } from "./media"
 import type { PostInput } from "./schemas"
 import type { MktPostDto } from "./types"
 import { STUCK_PUBLISHING_MS, assertCanPerform, assertScheduleWindow, isOnFacebook } from "./workflow"
@@ -11,6 +13,8 @@ type PostRow = MktPost & { media: MktPostMedia[]; metric: MktPostMetric | null }
 
 const include = { media: { orderBy: { sortOrder: "asc" } }, metric: true } satisfies Prisma.MktPostInclude
 const MAX_LIST = 300
+/** Facebook tải video từ link tạm, có thể xếp hàng một lúc nên để link sống vài giờ. */
+const VIDEO_LINK_SECONDS = 6 * 60 * 60
 
 function toDto(row: PostRow): MktPostDto {
   return {
@@ -19,7 +23,6 @@ function toDto(row: PostRow): MktPostDto {
     pageName: row.pageName,
     status: row.status,
     message: row.message,
-    link: row.link,
     scheduledAt: row.scheduledAt?.toISOString() ?? null,
     authorName: row.authorName,
     fbPostId: row.fbPostId,
@@ -116,7 +119,6 @@ export async function createPost(input: PostInput): Promise<MktPostDto> {
       fbPageId: input.fbPageId,
       pageName: await pageName(input.fbPageId),
       message: input.message,
-      link: input.link,
       scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
       authorName: input.authorName,
       media: { create: mediaCreate(input.media) },
@@ -143,8 +145,7 @@ export async function updatePost(id: string, input: PostInput): Promise<MktPostD
         fbPageId: input.fbPageId,
         pageName: name,
         message: input.message,
-        link: input.link,
-        scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
+          scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
         authorName: input.authorName,
         status: "DRAFT",
         lastError: null,
@@ -163,6 +164,14 @@ async function readMedia(key: string, contentType: string): Promise<Blob> {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array))
   }
   return new Blob([Buffer.concat(chunks)], { type: contentType })
+}
+
+/** Link tải tạm cho Facebook tự lấy video (S3/R2); storage cục bộ thì gửi thẳng nội dung file. */
+async function videoUpload(media: MktPostMedia): Promise<VideoUpload> {
+  const storage = getStorage()
+  const url = storage.createDownloadUrl ? await storage.createDownloadUrl(media.storageKey, VIDEO_LINK_SECONDS) : undefined
+  if (url) return { url }
+  return { data: await readMedia(media.storageKey, media.contentType), filename: media.storageKey.split("/").pop() ?? "video.mp4" }
 }
 
 /**
@@ -189,23 +198,26 @@ export async function publishPost(id: string, now: Date = new Date()): Promise<M
   if (claimed.count === 0) throw new ConflictError("Bài này vừa được người khác xử lý. Tải lại trang để xem trạng thái mới.")
 
   try {
-    const photos = await Promise.all(
-      current.media.map(async (m) => ({
-        data: await readMedia(m.storageKey, m.contentType),
-        filename: m.storageKey.split("/").pop() ?? "photo",
-      })),
-    )
+    const videoRow = current.media.find((m) => isVideoContentType(m.contentType))
+    const photos = videoRow
+      ? []
+      : await Promise.all(
+          current.media.map(async (m) => ({
+            data: await readMedia(m.storageKey, m.contentType),
+            filename: m.storageKey.split("/").pop() ?? "photo",
+          })),
+        )
     const fbPostId = await facebook.publish({
       pageId: current.fbPageId,
       message: current.message,
-      link: current.link,
       photos,
+      video: videoRow ? await videoUpload(videoRow) : null,
       scheduledAt: current.scheduledAt,
     })
     const scheduled = current.scheduledAt !== null
     const permalinkUrl = scheduled
       ? null
-      : await facebook.getPostStatus(fbPostId).then((s) => s.permalinkUrl, () => null)
+      : await facebook.getPostStatus(fbPostId, current.fbPageId).then((s) => s.permalinkUrl, () => null)
 
     const row = await prisma.mktPost.update({
       where: { id },
@@ -230,7 +242,7 @@ export async function publishPost(id: string, now: Date = new Date()): Promise<M
 export async function cancelPost(id: string): Promise<MktPostDto> {
   const current = await findRow(id)
   assertCanPerform("cancel", current.status)
-  if (current.fbPostId) await getFacebookClient().deletePost(current.fbPostId)
+  if (current.fbPostId) await getFacebookClient().deletePost(current.fbPostId, current.fbPageId)
   const row = await prisma.mktPost.update({
     where: { id },
     data: { status: "DRAFT", fbPostId: null, permalinkUrl: null },
@@ -243,7 +255,9 @@ export async function cancelPost(id: string): Promise<MktPostDto> {
 export async function deletePost(id: string): Promise<void> {
   const current = await findRow(id)
   assertCanPerform("delete", current.status)
-  if (isOnFacebook(current.status) && current.fbPostId) await getFacebookClient().deletePost(current.fbPostId)
+  if (isOnFacebook(current.status) && current.fbPostId) {
+    await getFacebookClient().deletePost(current.fbPostId, current.fbPageId)
+  }
   await prisma.mktPost.delete({ where: { id } })
   await removeStoredMedia(current.media.map((m) => m.storageKey))
 }

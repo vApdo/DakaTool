@@ -1,12 +1,12 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { CalendarClock, ChevronDown, Globe2, ImageIcon, Link2, Loader2, PenLine, X } from "lucide-react"
+import { CalendarClock, ChevronDown, Globe2, ImageIcon, Loader2, PenLine, X } from "lucide-react"
 import { marketingApi, type PostPayload } from "@/lib/marketing/client"
 import type { MktPageDto, MktPostDto } from "@/lib/marketing/types"
 import { fb } from "./fb-theme"
 import { PageAvatar } from "./page-avatar"
-import { PhotoPicker, type PickedPhoto } from "./photo-picker"
+import { MediaPicker, type PickedMedia } from "./media-picker"
 import { fromLocalInput, toLocalInput } from "./format"
 
 const AUTHOR_KEY = "dakatool.mkt.authorName"
@@ -27,11 +27,11 @@ function rememberAuthor(name: string) {
   }
 }
 
-export type ComposerSection = "photos" | "link" | "schedule"
+export type ComposerSection = "media" | "schedule"
 
 /**
  * Khung "Tạo bài viết" giống hộp thoại của Facebook: chọn Fanpage, viết nội dung,
- * thêm ảnh / link / hẹn giờ, rồi Đăng (hoặc Lên lịch) hoặc Lưu nháp.
+ * thêm ảnh/video và hẹn giờ, rồi Đăng (hoặc Lên lịch) hoặc Lưu nháp.
  */
 export function ComposerDialog({
   pages,
@@ -52,14 +52,12 @@ export function ComposerDialog({
   const [fbPageId, setFbPageId] = useState(post?.fbPageId ?? pages[0]?.id ?? "")
   const [authorName, setAuthorName] = useState(post?.authorName ?? "")
   const [message, setMessage] = useState(post?.message ?? "")
-  const [link, setLink] = useState(post?.link ?? "")
-  const [photos, setPhotos] = useState<PickedPhoto[]>(
+  const [media, setMedia] = useState<PickedMedia[]>(
     post?.media.map((m) => ({ key: m.key, contentType: m.contentType, sizeBytes: m.sizeBytes, previewUrl: m.url })) ?? [],
   )
   const [scheduledLocal, setScheduledLocal] = useState(toLocalInput(post?.scheduledAt ?? null))
   const [open, setOpen] = useState<Record<ComposerSection, boolean>>({
-    photos: Boolean(post?.media.length) || initialSection === "photos",
-    link: Boolean(post?.link) || initialSection === "link",
+    media: Boolean(post?.media.length) || initialSection === "media",
     schedule: Boolean(post?.scheduledAt) || initialSection === "schedule",
   })
   const [busy, setBusy] = useState<"publish" | "draft" | null>(null)
@@ -119,18 +117,17 @@ export function ComposerDialog({
   const scheduling = open.schedule && Boolean(scheduledLocal)
   const page = pages.find((p) => p.id === fbPageId)
   const pageName = page?.name ?? current?.pageName ?? "Chọn Fanpage"
-  const hasContent = message.trim().length > 0 || photos.length > 0 || (open.link && link.trim().length > 0)
+  const hasContent = message.trim().length > 0 || media.length > 0
   const canSubmit = Boolean(fbPageId) && hasContent && authorName.trim().length > 0 && busy === null
-  const bigText = message.length < 85 && photos.length === 0 && !open.photos
+  const bigText = message.length < 85 && media.length === 0 && !open.media
 
   function payload(): PostPayload {
     return {
       fbPageId,
       message,
-      link: open.link ? link.trim() : "",
       scheduledAt: open.schedule ? fromLocalInput(scheduledLocal) : null,
       authorName: authorName.trim(),
-      media: (open.photos ? photos : []).map(({ key, contentType, sizeBytes }) => ({ key, contentType, sizeBytes })),
+      media: (open.media ? media : []).map(({ key, contentType, sizeBytes }) => ({ key, contentType, sizeBytes })),
     }
   }
 
@@ -163,8 +160,7 @@ export function ComposerDialog({
   }
 
   const tools: { id: ComposerSection; label: string; icon: typeof ImageIcon; color: string }[] = [
-    { id: "photos", label: "Ảnh", icon: ImageIcon, color: "text-[#45BD62]" },
-    { id: "link", label: "Link", icon: Link2, color: "text-[#1877F2]" },
+    { id: "media", label: "Ảnh/video", icon: ImageIcon, color: "text-[#45BD62]" },
     { id: "schedule", label: "Hẹn giờ", icon: CalendarClock, color: "text-[#F3425F]" },
   ]
 
@@ -249,35 +245,16 @@ export function ComposerDialog({
             }`}
           />
 
-          {open.photos && (
+          {open.media && (
             <div className="mt-2">
-              <PhotoPicker
-                photos={photos}
-                onChange={change(setPhotos)}
+              <MediaPicker
+                media={media}
+                onChange={change(setMedia)}
                 onClose={() => {
-                  setPhotos([])
-                  setOpen((o) => ({ ...o, photos: false }))
+                  setMedia([])
+                  setOpen((o) => ({ ...o, media: false }))
                 }}
               />
-            </div>
-          )}
-
-          {open.link && (
-            <div className={`mt-3 rounded-lg border p-3 ${fb.divider}`}>
-              <label htmlFor="mkt-link" className={`text-[13px] font-semibold ${fb.muted}`}>Link đính kèm</label>
-              <input
-                id="mkt-link"
-                type="url"
-                value={link}
-                onChange={(e) => change(setLink)(e.target.value)}
-                placeholder="https://..."
-                className={`mt-1 h-10 w-full rounded-md px-3 text-[15px] outline-none focus:ring-2 focus:ring-[#1877F2] ${fb.input}`}
-              />
-              {link && photos.length > 0 && (
-                <p className="mt-1.5 text-xs text-[#B26B00] dark:text-[#F7B928]">
-                  Bài có ảnh thì Facebook không hiện khung xem trước link. Dán link vào nội dung nếu cần.
-                </p>
-              )}
             </div>
           )}
 
