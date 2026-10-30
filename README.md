@@ -27,6 +27,8 @@ npm run build       # build production
 |---|---|
 | Giấy đề nghị thanh toán | Nhập người đề nghị, bộ phận, công ty và danh sách hàng hóa theo Mẫu 05-TT; tự tính tổng và số tiền bằng chữ; tải PDF (pdf-lib, font tự host ở `public/fonts/`) hoặc in. Lịch sử đề nghị lưu trên Supabase. |
 
+**Marketing** (`/marketing`, ngoài danh sách tool): soạn bài Fanpage, trưởng nhóm duyệt bằng mã duyệt riêng, đăng ngay hoặc hẹn giờ qua Graph API. Cài đặt: [docs/marketing-setup.md](docs/marketing-setup.md).
+
 Các tool PDF và trích xuất HBL trước đây đã được gỡ khỏi repo.
 
 ## Kiến trúc
@@ -34,6 +36,7 @@ Các tool PDF và trích xuất HBL trước đây đã được gỡ khỏi rep
 - **Next.js 14 App Router + React 18 + TypeScript + Tailwind CSS**, deploy trên Vercel.
 - Logic tính tiền/đọc số ở `lib/payment-request.ts`; dựng PDF phiếu ở `lib/pdf/payment-request.ts`;
   lịch sử đề nghị ở `lib/payment-history/` và `app/api/payment-requests`.
+- Marketing ở `lib/marketing/` (client Graph API `facebook.ts`, quy tắc trạng thái `workflow.ts`, mã duyệt `approver.ts`), API `app/api/marketing/*`, giao diện `app/(app)/marketing/*`.
 - Mỗi tool có runner riêng qua registry `components/tool-runner-registry.tsx`.
 - Khu vực app dùng route group `app/(app)/` với sidebar chung; homepage nằm ngoài.
 - Không commit chứng từ thật vào repo (`test/fixtures/*.pdf` bị `.gitignore`).

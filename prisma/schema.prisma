@@ -162,3 +162,72 @@ model ConstructionFile {
 
   @@index([projectId])
 }
+
+// ===== Marketing: soạn, duyệt và đăng bài lên Fanpage =====
+
+enum MktPostStatus {
+  DRAFT
+  PENDING_REVIEW
+  REJECTED
+  /// Đang gửi lên Facebook — chặn bấm duyệt hai lần đăng trùng bài.
+  PUBLISHING
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+/// Một bài viết cho Fanpage, từ lúc soạn nháp tới khi đã đăng.
+model MktPost {
+  id           String        @id @default(cuid())
+  fbPageId     String
+  pageName     String
+  status       MktPostStatus @default(DRAFT)
+  message      String
+  link         String?
+  /// null = đăng ngay khi duyệt.
+  scheduledAt  DateTime?
+  authorName   String
+  reviewerName String?
+  reviewNote   String?
+  /// id bài trên Facebook dạng "{pageId}_{postId}", có khi đã lên lịch hoặc đã đăng.
+  fbPostId     String?
+  permalinkUrl String?
+  publishedAt  DateTime?
+  lastError    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  media  MktPostMedia[]
+  metric MktPostMetric?
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([createdAt])
+}
+
+model MktPostMedia {
+  id          String @id @default(cuid())
+  postId      String
+  storageKey  String
+  contentType String
+  sizeBytes   Int
+  sortOrder   Int    @default(0)
+
+  post MktPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+/// Bản chụp số liệu gần nhất lấy từ Facebook, để không gọi API mỗi lần mở trang.
+model MktPostMetric {
+  postId      String   @id
+  views       Int?
+  uniqueViews Int?
+  clicks      Int?
+  reactions   Int?
+  comments    Int?
+  shares      Int?
+  fetchedAt   DateTime
+
+  post MktPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+}

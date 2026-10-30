@@ -24,6 +24,17 @@ export class ConflictError extends Error {
   }
 }
 
+/**
+ * Dịch vụ bên ngoài (vd. Facebook) từ chối hoặc lỗi. Thông báo đã được viết lại
+ * bằng tiếng Việt, không chứa token hay chi tiết nội bộ, nên trả thẳng cho người dùng.
+ */
+export class UpstreamError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "UpstreamError"
+  }
+}
+
 export function ok<T>(data: T, init?: ResponseInit): NextResponse {
   return NextResponse.json(data, init)
 }
@@ -43,6 +54,9 @@ export function handleError(err: unknown): NextResponse {
   }
   if (err instanceof ConflictError) {
     return errorResponse("CONFLICT", err.message, 409)
+  }
+  if (err instanceof UpstreamError) {
+    return errorResponse("UPSTREAM_ERROR", err.message, 502)
   }
   // Lỗi ngoài dự kiến: KHÔNG trả err.message ra ngoài. Thông báo của Prisma chẳng
   // hạn có kèm đường dẫn file schema, tên biến môi trường và cấu hình datasource —
